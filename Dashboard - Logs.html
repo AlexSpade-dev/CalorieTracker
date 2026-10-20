@@ -1,0 +1,597 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CalorieTracker+ - Calorie Track Dashboard</title>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#051847",
+            "on-secondary-container": "#93d6f9",
+            "on-tertiary-container": "#172756",
+            "surface-tint": "#79d1ff",
+            "on-primary-fixed-variant": "#004c68",
+            "on-background": "#e0e0ff",
+            "on-error-container": "#ffdad6",
+            "tertiary-fixed-dim": "#b6c4fd",
+            "surface-dim": "#0d0f32",
+            "on-secondary-fixed-variant": "#004d66",
+            "primary-container": "#1a9bcd",
+            "on-primary": "#003549",
+            "surface-container-highest": "#2f3255",
+            "surface-container": "#1a1c3e",
+            "surface-container-high": "#242749",
+            "on-surface-variant": "#bec8d0",
+            "inverse-primary": "#006689",
+            "on-primary-container": "#002d40",
+            "primary-fixed-dim": "#79d1ff",
+            "on-secondary": "#003547",
+            "secondary-container": "#015e7c",
+            "outline": "#88929a",
+            "secondary": "#8ccff2",
+            "on-surface": "#e0e0ff",
+            "on-secondary-fixed": "#001e2b",
+            "secondary-fixed-dim": "#8ccff2",
+            "primary": "#79d1ff",
+            "inverse-on-surface": "#2b2d50",
+            "surface": "#0d0f32",
+            "on-primary-fixed": "#001e2c",
+            "secondary-fixed": "#c0e8ff",
+            "outline-variant": "#3e484f",
+            "primary-fixed": "#c3e8ff",
+            "surface-container-low": "#16183a",
+            "background": "#0d0f32",
+            "error": "#ffb4ab",
+            "surface-bright": "#34365a",
+            "on-error": "#690005",
+            "on-tertiary": "#1e2e5d",
+            "inverse-surface": "#e0e0ff",
+            "on-tertiary-fixed-variant": "#354475",
+            "error-container": "#93000a",
+            "surface-container-lowest": "#080a2c",
+            "tertiary": "#b6c4fd",
+            "tertiary-fixed": "#dbe1ff",
+            "surface-variant": "#2f3255",
+            "tertiary-container": "#808fc4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "spacing-2xs": "0.25rem",
+            "bottom-nav-height": "4.5rem",
+            "spacing-3xs": "0.125rem",
+            "spacing-lg": "1.25rem",
+            "spacing-sm": "0.75rem",
+            "spacing-xl": "1.5rem",
+            "spacing-md": "1rem",
+            "screen-margin-mobile": "1rem",
+            "spacing-xs": "0.5rem",
+            "spacing-3xl": "2.5rem",
+            "spacing-2xl": "2rem",
+            "screen-margin-tablet": "1.5rem",
+            "card-padding": "1.25rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "display-hero-mobile": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "display-hero": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "metric-lg": ["Plus Jakarta Sans"],
+            "metric-md": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "display-hero-mobile": ["36px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "display-hero": ["48px", { "lineHeight": "52px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "metric-lg": ["32px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "metric-md": ["20px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-primary selection:text-on-primary min-h-screen">
+<!-- Main Container Constraint (Mobile Focus Layout) -->
+<div class="max-w-lg mx-auto min-h-screen flex flex-col relative pb-bottom-nav-height">
+<!-- Top Navigation Header (Shared Component: TopAppBar) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 max-w-lg mx-auto bg-surface/80 dark:bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 dark:border-outline-variant/30">
+<div class="flex items-center gap-3">
+<!-- Leading Avatar -->
+<div class="relative w-10 h-10 rounded-full ring-2 ring-primary/40 overflow-hidden bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Close-up professional portrait of a fit young athlete looking forward with warm ambient cyan and navy reflections in an ultra-modern athletic wellness studio setting with soft oceanic contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdRIPgdEIfCpn5hotCGX8X45w3hypEeFWWhnwtlvAEXCv1XfxOzQL_ZqV0bvH_qMy7KblKONY0daX_YRExLS221ECopQCaGlg-Pm9TNSXcP8cBxZSmjsJOd954H9Q2Ajtf5jl2EoVwT2-IRQJKYvtMJa7EbS7TfBd0yYEUp0YwpAK9dtVv-SfKfJFhuwjEWPR_RXb7fEhwL6-rSP430ulENeSkDxZL4G3YtU1PkTAroYYJ4aS9WIKxsQ">
+</div>
+<div class="flex flex-col">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary tracking-tight">CalorieTracker+</span>
+<span class="text-label-sm font-label-sm text-secondary-container flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            Sync Active
+          </span>
+</div>
+</div>
+<!-- Trailing Action / Notifications & Streak -->
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/40">
+<span class="text-label-sm font-label-sm font-bold text-primary">🔥 14 Days</span>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary hover:bg-surface-container/50 transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-4 pt-20 pb-8 flex flex-col gap-5">
+<!-- Greeting & Date Strip -->
+<div class="flex items-center justify-between mt-1">
+<div>
+<h1 class="text-headline-sm font-headline-sm text-on-surface">Good morning, Alex 👋</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Wednesday, Oct 24 • Caloric Deficit Target</p>
+</div>
+<button class="p-2 rounded-xl bg-surface-container border border-outline-variant/30 text-secondary-container hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+</button>
+</div>
+<!-- Hero Calorie Summary Bento Card -->
+<section class="rounded-2xl p-5 bg-surface-container-low border border-outline-variant/40 relative overflow-hidden">
+<!-- Ambient Radial Glow overlay -->
+<div class="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-4">
+<span class="text-label-md font-label-md text-secondary tracking-wide uppercase">Energy Intake</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded-full bg-surface-container text-primary font-bold border border-primary/20">Active Deficit</span>
+</div>
+<!-- Radial Calorie Arc & Telemetry -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-6 py-2">
+<!-- Circular Radial Indicator -->
+<div class="relative w-40 h-40 flex items-center justify-center shrink-0">
+<svg class="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+<!-- Background Outer Track -->
+<circle class="stroke-surface-container-highest" cx="60" cy="60" fill="transparent" r="50" stroke-width="8"></circle>
+<!-- Consumed Calorie Arc (1450/2100 ~ 69%) -->
+<circle class="stroke-primary" cx="60" cy="60" fill="transparent" r="50" stroke-dasharray="314.15" stroke-dashoffset="97.38" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute flex flex-col items-center justify-center text-center">
+<span class="text-metric-lg font-metric-lg text-on-surface leading-none">650</span>
+<span class="text-label-sm font-label-sm text-primary uppercase font-bold tracking-wider mt-1">kcal left</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[10px]">of 2,100</span>
+</div>
+</div>
+<!-- Micro Breakdown Metrics -->
+<div class="w-full flex flex-col gap-3">
+<div class="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/30 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="local_fire_department">local_fire_department</span>
+<span class="text-body-md font-body-md text-on-surface">Consumed</span>
+</div>
+<span class="text-headline-sm font-headline-sm text-primary">1,450 <span class="text-body-sm font-body-sm text-on-surface-variant">kcal</span></span>
+</div>
+<div class="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/30 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="bolt">bolt</span>
+<span class="text-body-md font-body-md text-on-surface">Base Burn</span>
+</div>
+<span class="text-headline-sm font-headline-sm text-on-surface">1,820 <span class="text-body-sm font-body-sm text-on-surface-variant">kcal</span></span>
+</div>
+</div>
+</div>
+<!-- Macro Breakdown 3-Mini Gauges -->
+<div class="grid grid-cols-3 gap-2.5 mt-5 pt-4 border-t border-outline-variant/30">
+<!-- Carbs -->
+<div class="flex flex-col gap-1.5 p-2.5 rounded-xl bg-surface-container/50 border border-outline-variant/20">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-secondary font-bold">Carbs</span>
+<span class="text-on-surface">165g</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 75%"></div>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[10px]">Target: 220g</span>
+</div>
+<!-- Protein -->
+<div class="flex flex-col gap-1.5 p-2.5 rounded-xl bg-surface-container/50 border border-outline-variant/20">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-secondary font-bold">Protein</span>
+<span class="text-on-surface">110g</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 73%"></div>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[10px]">Target: 150g</span>
+</div>
+<!-- Fats -->
+<div class="flex flex-col gap-1.5 p-2.5 rounded-xl bg-surface-container/50 border border-outline-variant/20">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-secondary font-bold">Fats</span>
+<span class="text-on-surface">45g</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 64%"></div>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[10px]">Target: 70g</span>
+</div>
+</div>
+</section>
+<!-- Quick Water Tracker Strip -->
+<section class="rounded-2xl p-4 bg-surface-container-low border border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="text-label-md font-label-md text-on-surface font-bold">Hydration</span>
+<span class="text-label-sm font-label-sm text-primary font-bold">1.8L / 2.5L</span>
+</div>
+<div class="w-32 bg-surface-container-highest h-1.5 rounded-full mt-1.5 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 72%"></div>
+</div>
+</div>
+</div>
+<button class="flex items-center gap-1 px-3 py-2 rounded-full bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 text-primary text-label-sm font-label-sm font-bold active:scale-95 transition-transform" id="quick-hydration-btn" onclick="document.getElementById('hydration-dialog').classList.remove('hidden')">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+<span class="">250ml</span>
+</button>
+</section>
+<!-- Today's Meals Section -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Today's Meals</h2>
+<span class="text-label-sm font-label-sm text-secondary-container font-semibold">3 of 4 logged</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Breakfast (Logged) -->
+<div class="rounded-2xl p-4 bg-surface-container-low border border-outline-variant/40 flex items-center justify-between transition-all">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="wb_twilight">wb_twilight</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-body-md font-body-md font-bold text-on-surface">Breakfast</span>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Oatmeal with Berries &amp; Whey</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-headline-sm font-headline-sm text-primary">420</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant block leading-tight">kcal</span>
+</div>
+</div>
+<!-- Lunch (Logged) -->
+<div class="rounded-2xl p-4 bg-surface-container-low border border-outline-variant/40 flex items-center justify-between transition-all">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="wb_sunny">wb_sunny</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-body-md font-body-md font-bold text-on-surface">Lunch</span>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Grilled Salmon Bowl &amp; Quinoa</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-headline-sm font-headline-sm text-primary">680</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant block leading-tight">kcal</span>
+</div>
+</div>
+<!-- Snack (Logged) -->
+<div class="rounded-2xl p-4 bg-surface-container-low border border-outline-variant/40 flex items-center justify-between transition-all">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="cookie">cookie</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-body-md font-body-md font-bold text-on-surface">Snack</span>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Greek Yogurt &amp; Almonds</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-headline-sm font-headline-sm text-primary">350</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant block leading-tight">kcal</span>
+</div>
+</div>
+<!-- Dinner (Pending Action) -->
+<div class="rounded-2xl p-4 bg-surface-container-low/70 border border-dashed border-primary/40 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="nights_stay">nights_stay</span>
+</div>
+<div class="flex flex-col">
+<span class="text-body-md font-body-md font-bold text-on-surface">Dinner</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Remaining budget: 650 kcal</span>
+</div>
+</div>
+<button class="h-10 px-4 rounded-full bg-primary text-on-primary text-label-md font-label-md font-bold flex items-center gap-1 shadow-lg shadow-primary/20 active:scale-95 transition-all" id="dinner-add-btn" onclick="document.getElementById('dinner-dialog').classList.remove('hidden')">
+<span class="material-symbols-outlined text-base" data-icon="add">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Quick Action / Barcode Floating Cluster Strip -->
+<div class="mt-2 p-4 rounded-2xl bg-surface-container border border-outline-variant/30 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="barcode_scanner">barcode_scanner</span>
+</div>
+<div>
+<span class="text-label-md font-label-md text-on-surface block">Fast Barcode Scan</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Identify branded food items instantly</span>
+</div>
+</div>
+<button class="p-2.5 rounded-full bg-surface-container-highest text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component: BottomNavBar) -->
+<!-- Active state mapped precisely to the top-level 'Log' tab representing Dashboard Logging -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-18 px-4 pb-safe max-w-lg mx-auto bg-surface/90 dark:bg-surface/90 backdrop-blur-xl border-t border-outline-variant/30 dark:border-outline-variant/30">
+<!-- Destination 1: Log (Active) -->
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary font-semibold gap-1 relative after:content-[''] after:w-1 after:h-1 after:bg-primary dark:after:bg-primary after:rounded-full after:mt-0.5 active:scale-95 transition-transform duration-150 py-2">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="text-label-sm font-label-sm">Log</span>
+</button>
+<!-- Destination 2: Recipes (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 hover:text-primary dark:hover:text-primary transition-colors duration-150 active:scale-95 py-2">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="text-label-sm font-label-sm">Recipes</span>
+</button>
+<!-- Destination 3: Analytics (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 hover:text-primary dark:hover:text-primary transition-colors duration-150 active:scale-95 py-2">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-label-sm font-label-sm">Analytics</span>
+</button>
+<!-- Destination 4: Profile (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 hover:text-primary dark:hover:text-primary transition-colors duration-150 active:scale-95 py-2">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</button>
+</nav>
+</div>
+<g0-textarea-recorder-host id="g0-textarea-recorder"></g0-textarea-recorder-host><!-- Hydration Confirmation Dialog Modal -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden" id="hydration-dialog">
+<div class="relative w-full max-w-md bg-surface-container-low border border-primary/40 rounded-2xl p-5 shadow-2xl shadow-primary/10 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+<!-- Header -->
+<div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="water_drop">water_drop</span>
+</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface leading-tight">Confirm Hydration</h3>
+<span class="text-body-sm font-body-sm text-on-surface-variant text-[11px]">Daily Water Logging</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container/60 hover:bg-surface-container-high text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" onclick="document.getElementById('hydration-dialog').classList.add('hidden')">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+</button>
+</div>
+<!-- Quick Portion Chips -->
+<div class="flex flex-col gap-1.5">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-bold uppercase tracking-wider">Intake Volume</span>
+<div class="grid grid-cols-4 gap-2">
+<button class="hydration-chip py-2 px-2 rounded-xl border border-primary text-primary bg-primary/10 font-bold text-label-md flex flex-col items-center justify-center transition-all" onclick="window.selectHydrationVolume('250', this)" type="button">+250ml</button>
+<button class="hydration-chip py-2 px-2 rounded-xl border border-outline-variant/30 text-on-surface bg-surface-container font-semibold text-label-md flex flex-col items-center justify-center hover:border-primary/40 hover:text-primary transition-all" onclick="window.selectHydrationVolume('500', this)" type="button">+500ml</button>
+<button class="hydration-chip py-2 px-2 rounded-xl border border-outline-variant/30 text-on-surface bg-surface-container font-semibold text-label-md flex flex-col items-center justify-center hover:border-primary/40 hover:text-primary transition-all" onclick="window.selectHydrationVolume('750', this)" type="button">+750ml</button>
+<button class="hydration-chip py-2 px-2 rounded-xl border border-outline-variant/30 text-on-surface bg-surface-container font-semibold text-label-md flex flex-col items-center justify-center hover:border-primary/40 hover:text-primary transition-all" onclick="window.selectHydrationVolume('1000', this)" type="button">+1.0L</button>
+</div>
+</div>
+<!-- Visual Progress Preview Card -->
+<div class="p-3.5 rounded-xl bg-surface-container/70 border border-outline-variant/30 flex flex-col gap-2.5">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Target Preview</span>
+<span class="text-primary font-bold" id="hydration-preview-label">1.8L → 2.05L / 2.5L (82%)</span>
+</div>
+<div class="w-full bg-surface-container-highest h-2 rounded-full overflow-hidden flex relative">
+<div class="bg-secondary/60 h-full rounded-l-full" style="width: 72%"></div>
+<div class="bg-primary h-full transition-all duration-300" id="hydration-preview-bar" style="width: 10%"></div>
+</div>
+<span class="text-[11px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="info">info</span>
+        Almost there! 450ml left to reach your daily hydration benchmark.
+      </span>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-3 pt-2">
+<button class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-semibold text-label-md hover:bg-surface-container-high transition-colors active:scale-95" onclick="document.getElementById('hydration-dialog').classList.add('hidden')" type="button">
+        Cancel
+      </button>
+<button class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-bold text-label-md shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5" id="confirm-hydration-btn" onclick="window.submitHydration()" type="button">
+<span class="material-symbols-outlined text-base" data-icon="check">check</span>
+<span id="confirm-hydration-text">Confirm &amp; Log (+250ml)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Dinner Meal Logging Dialog Modal -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden" id="dinner-dialog">
+<div class="relative w-full max-w-md bg-surface-container-low border border-primary/40 rounded-2xl p-5 shadow-2xl shadow-primary/10 flex flex-col gap-4 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+<!-- Header -->
+<div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="nights_stay">nights_stay</span>
+</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface leading-tight">Log Dinner Meal</h3>
+<span class="text-body-sm font-body-sm text-secondary-container text-[11px]">Remaining budget: <strong class="text-primary font-bold">650 kcal</strong></span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container/60 hover:bg-surface-container-high text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" onclick="document.getElementById('dinner-dialog').classList.add('hidden')">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+</button>
+</div>
+<!-- Quick Smart Recommendations -->
+<div class="flex flex-col gap-1.5">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-bold uppercase tracking-wider">Smart Suggestions</span>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-label-sm font-label-sm text-on-surface hover:text-primary transition-all flex items-center gap-1.5" onclick="window.applyPresetMeal('Herb Roast Salmon with Quinoa &amp; Asparagus', 580, 45, 42, 18)" type="button">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="star">star</span>
+          Salmon &amp; Quinoa (580 kcal)
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-label-sm font-label-sm text-on-surface hover:text-primary transition-all flex items-center gap-1.5" onclick="window.applyPresetMeal('Grilled Lemon Herb Chicken Bowl', 520, 40, 48, 12)" type="button">
+<span class="material-symbols-outlined text-xs text-secondary" data-icon="history">history</span>
+          Chicken Bowl (520 kcal)
+        </button>
+</div>
+</div>
+<!-- Form Inputs -->
+<div class="flex flex-col gap-3">
+<div>
+<label class="text-label-sm font-label-sm text-on-surface-variant font-medium block mb-1">Meal Name</label>
+<input class="w-full bg-surface-container border border-outline-variant/40 rounded-xl px-3 py-2 text-on-surface text-body-md focus:outline-none focus:border-primary" id="dinner-name-input" type="text" value="Herb Roast Salmon with Quinoa &amp; Asparagus">
+</div>
+<div>
+<label class="text-label-sm font-label-sm text-on-surface-variant font-medium block mb-1">Total Calories</label>
+<div class="relative">
+<input class="w-full bg-surface-container border border-outline-variant/40 rounded-xl px-3 py-2 text-on-surface font-headline-sm font-bold text-primary focus:outline-none focus:border-primary pr-14" id="dinner-kcal-input" type="number" value="580">
+<span class="absolute right-3 top-2.5 text-label-md text-on-surface-variant">kcal</span>
+</div>
+</div>
+<!-- Macro Breakdown Inputs -->
+<div>
+<label class="text-label-sm font-label-sm text-on-surface-variant font-medium block mb-1">Estimated Macro Breakdown</label>
+<div class="grid grid-cols-3 gap-2">
+<div class="p-2 rounded-xl bg-surface-container border border-outline-variant/30 flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">Carbs</span>
+<div class="flex items-center gap-0.5 mt-0.5">
+<input class="w-full bg-transparent text-body-md font-bold text-on-surface p-0 focus:outline-none" id="dinner-carbs-input" type="number" value="45">
+<span class="text-xs text-on-surface-variant">g</span>
+</div>
+</div>
+<div class="p-2 rounded-xl bg-surface-container border border-outline-variant/30 flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">Protein</span>
+<div class="flex items-center gap-0.5 mt-0.5">
+<input class="w-full bg-transparent text-body-md font-bold text-on-surface p-0 focus:outline-none" id="dinner-protein-input" type="number" value="42">
+<span class="text-xs text-on-surface-variant">g</span>
+</div>
+</div>
+<div class="p-2 rounded-xl bg-surface-container border border-outline-variant/30 flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase">Fats</span>
+<div class="flex items-center gap-0.5 mt-0.5">
+<input class="w-full bg-transparent text-body-md font-bold text-on-surface p-0 focus:outline-none" id="dinner-fats-input" type="number" value="18">
+<span class="text-xs text-on-surface-variant">g</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-3 pt-2">
+<button class="flex-1 py-2.5 rounded-full bg-surface-container text-on-surface font-semibold text-label-md hover:bg-surface-container-high transition-colors active:scale-95" onclick="document.getElementById('dinner-dialog').classList.add('hidden')" type="button">
+        Cancel
+      </button>
+<button class="flex-1 py-2.5 rounded-full bg-primary text-on-primary font-bold text-label-md shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5" onclick="window.submitDinner()" type="button">
+<span class="material-symbols-outlined text-base" data-icon="check">check</span>
+        Confirm &amp; Log Dinner
+      </button>
+</div>
+</div>
+</div>
+<!-- Toast Notification Feedback -->
+<div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pointer-events-none hidden transition-all duration-300" id="toast-container">
+<div class="p-3.5 rounded-2xl bg-surface-container-high border border-primary/50 shadow-xl shadow-primary/10 flex items-center gap-3 pointer-events-auto backdrop-blur-xl" id="toast-content">
+<div class="w-9 h-9 rounded-xl bg-primary/20 text-primary flex items-center justify-center shrink-0" id="toast-icon-wrapper">
+<span class="material-symbols-outlined text-xl" data-icon="check_circle" id="toast-icon">check_circle</span>
+</div>
+<div class="flex-1">
+<p class="text-label-md font-bold text-on-surface leading-snug" id="toast-title">Action confirmed</p>
+<p class="text-body-sm text-on-surface-variant text-[11px] leading-tight mt-0.5" id="toast-body">Update saved successfully.</p>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1" onclick="document.getElementById('toast-container').classList.add('hidden')">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- Inline scripts for modal interactivity -->
+<script>
+  window.currentSelectedVol = 250;
+  window.selectHydrationVolume = function(vol, btn) {
+    window.currentSelectedVol = parseInt(vol);
+    document.querySelectorAll('.hydration-chip').forEach(function(el) {
+      el.className = 'hydration-chip py-2 px-2 rounded-xl border border-outline-variant/30 text-on-surface bg-surface-container font-semibold text-label-md flex flex-col items-center justify-center hover:border-primary/40 hover:text-primary transition-all';
+    });
+    btn.className = 'hydration-chip py-2 px-2 rounded-xl border border-primary text-primary bg-primary/10 font-bold text-label-md flex flex-col items-center justify-center transition-all';
+    
+    var newTotal = 1.8 + (window.currentSelectedVol / 1000);
+    var target = 2.5;
+    var pct = Math.min(100, Math.round((newTotal / target) * 100));
+    var addedPct = Math.round((window.currentSelectedVol / 1000 / target) * 100);
+    
+    document.getElementById('hydration-preview-label').innerText = '1.8L → ' + newTotal.toFixed(2) + 'L / 2.5L (' + pct + '%)';
+    document.getElementById('hydration-preview-bar').style.width = addedPct + '%';
+    document.getElementById('confirm-hydration-text').innerText = 'Confirm & Log (+' + window.currentSelectedVol + 'ml)';
+  };
+
+  window.showToast = function(title, message, icon) {
+    var container = document.getElementById('toast-container');
+    document.getElementById('toast-title').innerText = title;
+    document.getElementById('toast-body').innerText = message;
+    if (icon) document.getElementById('toast-icon').innerText = icon;
+    container.classList.remove('hidden');
+    setTimeout(function() {
+      container.classList.add('hidden');
+    }, 4500);
+  };
+
+  window.submitHydration = function() {
+    document.getElementById('hydration-dialog').classList.add('hidden');
+    var newTotal = (1.8 + (window.currentSelectedVol / 1000)).toFixed(2);
+    var pct = Math.min(100, Math.round((newTotal / 2.5) * 100));
+    window.showToast('Hydration Logged!', 'Logged +' + window.currentSelectedVol + 'ml water! ' + newTotal + 'L / 2.5L daily target reached (' + pct + '%).', 'water_drop');
+  };
+
+  window.applyPresetMeal = function(name, kcal, carbs, protein, fats) {
+    document.getElementById('dinner-name-input').value = name;
+    document.getElementById('dinner-kcal-input').value = kcal;
+    document.getElementById('dinner-carbs-input').value = carbs;
+    document.getElementById('dinner-protein-input').value = protein;
+    document.getElementById('dinner-fats-input').value = fats;
+  };
+
+  window.submitDinner = function() {
+    document.getElementById('dinner-dialog').classList.add('hidden');
+    var kcal = document.getElementById('dinner-kcal-input').value || 580;
+    var rem = Math.max(0, 650 - parseInt(kcal));
+    window.showToast('Dinner Logged!', 'Dinner logged! ' + kcal + ' kcal added. Remaining daily budget: ' + rem + ' kcal.', 'check_circle');
+  };
+</script></body></html>
