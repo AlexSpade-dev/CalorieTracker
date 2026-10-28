@@ -1,0 +1,314 @@
+<!DOCTYPE html><html class="h-full bg-[#07091e]" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Sign Up - CalorieTracker+</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: { extend: { colors: { abyss: {
+        DEFAULT: '#07091e', surface: '#0d1138', card: '#111742', cardActive: '#121d52',
+        border: '#1a2456', accent: '#0094c6', accentLight: '#38bdf8' } } } }
+    }
+</script>
+<style>
+  .glow-cyan { box-shadow: 0 0 15px rgba(0,148,198,.35); }
+  .custom-scroll::-webkit-scrollbar { display:none; }
+  .custom-scroll { -ms-overflow-style:none; scrollbar-width:none; }
+
+  /* Selected state for calorie goal cards (driven by the radio itself) */
+  .goal-card { border:1px solid #1b255e; background:rgba(13,18,56,.8); transition:all .2s; cursor:pointer; }
+  .goal-card:hover { border-color:#2b3a88; }
+  .goal-card i { color:#64748b; }
+  .goal-card .goal-sub { color:#94a3b8; }
+  .goal-card:has(input:checked) { border:2px solid #0094c6; background:#111947; box-shadow:0 0 15px rgba(0,148,198,.35); padding:13.5px; }
+  .goal-card:has(input:checked) i { color:#0094c6; }
+  .goal-card:has(input:checked) .goal-sub { color:#cbd5e1; }
+  .goal-card:has(input:checked) .goal-tag { background:rgba(0,148,198,.2); color:#38bdf8; border-color:rgba(0,148,198,.4); }
+
+  /* Keep inputs dark even when Chrome autofills / suggests saved values */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0d1238 inset !important;
+    box-shadow: 0 0 0 1000px #0d1238 inset !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+    caret-color: #f1f5f9;
+    border-color: #1b255e;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+  input:-webkit-autofill:focus { border-color: #0094c6; }
+  input { color-scheme: dark; }
+
+  /* Show/hide password eye: always visible, clear hover state */
+  #toggle-pw { color:#94a3b8; }
+  #toggle-pw i { padding:6px; border-radius:9999px; transition:all .15s; }
+  #toggle-pw:hover i, #toggle-pw:focus-visible i { color:#38bdf8; background:rgba(56,189,248,.15); }
+
+  /* Validation */
+  .input-error { border-color:#f87171 !important; box-shadow:0 0 0 1px #f87171; }
+  .shake { animation:shake .35s ease-in-out; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+  .seg { transition:background-color .3s; }
+</style>
+</head>
+<body class="h-full bg-[#07091e] text-slate-100 font-sans antialiased selection:bg-[#0094c6] selection:text-white">
+<main class="min-h-screen max-w-md mx-auto px-5 pt-8 pb-10 flex flex-col justify-between custom-scroll">
+<div>
+<!-- TopBar -->
+<header class="flex items-center justify-between mb-6">
+<button id="back-btn" aria-label="Go Back" class="w-10 h-10 rounded-full bg-[#131b47]/80 border border-[#202b66] flex items-center justify-center text-slate-300 hover:text-white transition-colors" type="button">
+<i class="fa-solid fa-arrow-left text-sm"></i>
+</button>
+<div class="flex items-center gap-2 bg-[#121946]/90 border border-[#232e6d] rounded-full px-3.5 py-1.5 shadow-inner"><div class="flex items-center gap-1.5"><span class="w-4 h-1.5 bg-[#0094c6] rounded-full inline-block shadow-[0_0_8px_#0094c6]"></span><span class="w-4 h-1.5 bg-slate-700/60 rounded-full inline-block"></span></div><span class="text-xs font-medium text-slate-200">Step 1 of 2: Profile &amp; Goals</span></div>
+<button aria-label="Quick Actions" class="w-10 h-10 flex items-center justify-center text-[#0094c6] hover:text-[#38bdf8] transition-colors" type="button">
+<i class="fa-solid fa-bolt text-lg"></i>
+</button>
+</header>
+
+<!-- Hero -->
+<section class="mb-6">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#202d6b] bg-[#121844]/60 text-[#38bdf8] text-xs font-semibold tracking-wide mb-3">
+<span>CalorieTracker+</span>
+</div>
+<h1 class="text-3xl font-extrabold text-white tracking-tight leading-tight">Start Your Health Journey</h1>
+<p class="text-slate-400 text-sm mt-1.5">Join 50,000+ members tracking nutrition daily</p>
+</section>
+
+<!-- Form -->
+<form id="form" class="space-y-4" novalidate>
+
+<!-- Full Name -->
+<div>
+<div class="flex justify-between items-center text-xs font-medium mb-1.5">
+<label class="text-slate-200" for="fullName">Full Name</label>
+<span class="text-slate-400">Required</span>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"><i class="fa-regular fa-user text-sm"></i></span>
+<input class="w-full bg-[#0d1238] border border-[#1b255e] focus:border-[#0094c6] focus:ring-1 focus:ring-[#0094c6] rounded-xl pl-10 pr-4 py-3 text-sm text-slate-100 placeholder-slate-600 outline-none transition-all" id="fullName" placeholder="e.g. Alex Morgan" type="text" autocomplete="name">
+</div>
+<p id="err-fullName" class="hidden text-[11px] text-red-400 mt-1.5"><i class="fa-solid fa-circle-exclamation mr-1"></i><span></span></p>
+</div>
+
+<!-- Email -->
+<div>
+<div class="flex justify-between items-center text-xs font-medium mb-1.5">
+<label class="text-slate-200" for="email">Email Address</label>
+<span class="text-slate-400">Verification link will be sent</span>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"><i class="fa-regular fa-envelope text-sm"></i></span>
+<input class="w-full bg-[#0d1238] border border-[#1b255e] focus:border-[#0094c6] focus:ring-1 focus:ring-[#0094c6] rounded-xl pl-10 pr-4 py-3 text-sm text-slate-100 placeholder-slate-600 outline-none transition-all" id="email" placeholder="alex@example.com" type="email" autocomplete="email">
+</div>
+<p id="err-email" class="hidden text-[11px] text-red-400 mt-1.5"><i class="fa-solid fa-circle-exclamation mr-1"></i><span></span></p>
+</div>
+
+<!-- Password -->
+<div>
+<div class="flex justify-between items-center text-xs font-medium mb-1.5">
+<label class="text-slate-200" for="password">Password</label>
+<span id="strength-label" class="text-slate-500 font-semibold">Enter a password</span>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500"><i class="fa-solid fa-key text-sm"></i></span>
+<input class="w-full bg-[#0d1238] border border-[#1b255e] focus:border-[#0094c6] focus:ring-1 focus:ring-[#0094c6] rounded-xl pl-10 pr-10 py-3 text-sm text-slate-100 placeholder-slate-600 outline-none transition-all" id="password" placeholder="Create a strong password" type="password" autocomplete="new-password">
+<button id="toggle-pw" aria-label="Toggle password visibility" class="absolute inset-y-0 right-0 pr-2.5 flex items-center outline-none" type="button">
+<i id="pw-eye" class="fa-regular fa-eye text-sm"></i>
+</button>
+</div>
+<div class="mt-2.5 space-y-1.5">
+<div class="grid grid-cols-4 gap-1.5">
+<div class="seg h-1 rounded-full bg-slate-700/60"></div>
+<div class="seg h-1 rounded-full bg-slate-700/60"></div>
+<div class="seg h-1 rounded-full bg-slate-700/60"></div>
+<div class="seg h-1 rounded-full bg-slate-700/60"></div>
+</div>
+<p id="pw-hint" class="text-[11px] text-slate-400 font-normal">Includes numbers, symbols, and uppercase letters</p>
+</div>
+<p id="err-password" class="hidden text-[11px] text-red-400 mt-1.5"><i class="fa-solid fa-circle-exclamation mr-1"></i><span></span></p>
+</div>
+
+<!-- Calorie Goal -->
+<div class="pt-2">
+<div class="flex justify-between items-center mb-2.5">
+<span class="text-sm font-medium text-slate-200">Daily Calorie Goal</span>
+<span class="text-xs text-slate-500">Can be changed later</span>
+</div>
+<div class="space-y-2.5">
+<label class="goal-card flex items-center justify-between p-3.5 rounded-xl">
+<div class="flex items-center gap-3">
+<input class="w-4 h-4 text-[#0094c6] bg-transparent border-slate-600 focus:ring-[#0094c6] focus:ring-offset-0 focus:ring-0" name="calorie_goal" type="radio" value="1800" data-label="Deficit">
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-white">1,800 kcal</span>
+<span class="goal-tag text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-950/70 text-cyan-400 border border-cyan-900/50">Deficit</span>
+</div>
+<p class="goal-sub text-xs">Fat Loss &amp; Lean Conditioning</p>
+</div>
+</div>
+<i class="fa-solid fa-fire text-base"></i>
+</label>
+
+<label class="goal-card flex items-center justify-between p-3.5 rounded-xl">
+<div class="flex items-center gap-3">
+<input checked class="w-4 h-4 text-[#0094c6] bg-transparent border-slate-600 focus:ring-[#0094c6] focus:ring-offset-0 focus:ring-0" name="calorie_goal" type="radio" value="2200" data-label="Optimal">
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-white">2,200 kcal</span>
+<span class="goal-tag text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-950/70 text-cyan-400 border border-cyan-900/50">Optimal</span>
+</div>
+<p class="goal-sub text-xs">Maintenance &amp; Daily Energy</p>
+</div>
+</div>
+<i class="fa-solid fa-scale-balanced text-base"></i>
+</label>
+
+<label class="goal-card flex items-center justify-between p-3.5 rounded-xl">
+<div class="flex items-center gap-3">
+<input class="w-4 h-4 text-[#0094c6] bg-transparent border-slate-600 focus:ring-[#0094c6] focus:ring-offset-0 focus:ring-0" name="calorie_goal" type="radio" value="2600" data-label="Surplus">
+<div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-semibold text-white">2,600 kcal</span>
+<span class="goal-tag text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-950/70 text-cyan-400 border border-cyan-900/50">Surplus</span>
+</div>
+<p class="goal-sub text-xs">Muscle Gain &amp; Hypertrophy</p>
+</div>
+</div>
+<i class="fa-solid fa-arrows-up-down-left-right text-base"></i>
+</label>
+</div>
+</div>
+
+<!-- Terms -->
+<div>
+<div class="flex items-start gap-2.5 pt-2">
+<input class="mt-1 w-4 h-4 rounded border-slate-600 bg-[#0d1238] text-[#0094c6] focus:ring-[#0094c6] focus:ring-offset-0" id="terms" type="checkbox">
+<label class="text-xs text-slate-400 leading-relaxed select-none" for="terms">
+I agree to the <a class="text-slate-200 underline decoration-slate-500 hover:text-white" href="#">Terms of Service</a> and acknowledge the <a class="text-slate-200 underline decoration-slate-500 hover:text-white" href="#">Privacy Policy</a>.
+</label>
+</div>
+<p id="err-terms" class="hidden text-[11px] text-red-400 mt-1.5"><i class="fa-solid fa-circle-exclamation mr-1"></i><span></span></p>
+</div>
+
+<button id="next-btn" class="w-full mt-4 py-3.5 px-4 rounded-xl bg-[#0094c6] hover:bg-[#0081ad] active:scale-[0.99] text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#0094c6]/25 transition-all text-sm disabled:opacity-70" type="submit">
+<span id="next-label">Next</span>
+<i id="next-icon" class="fa-solid fa-arrow-right text-xs"></i>
+</button>
+</form>
+</div>
+
+<footer class="mt-8 text-center text-xs text-slate-400 pb-2">
+Already have an account?
+<a id="signin-link" class="text-[#0094c6] hover:text-[#38bdf8] font-medium ml-1" href="../Log%20In.html">Sign In</a>
+</footer>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'ct_signup';
+const LOGIN_PAGE = '../Log%20In.html';   // change if your login file is named differently
+const STEP2_PAGE = 'Sign-In_2.html';
+const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+
+// Back button: browser history if available, otherwise login page
+$('back-btn').onclick = () => (document.referrer ? history.back() : (location.href = LOGIN_PAGE));
+
+// Prefill when returning from step 2 (password is never stored)
+if (saved.name)  $('fullName').value = saved.name;
+if (saved.email) $('email').value = saved.email;
+if (saved.goal) { const r = document.querySelector(`input[name=calorie_goal][value="${saved.goal}"]`); if (r) r.checked = true; }
+if (saved.terms) $('terms').checked = true;
+
+// Show / hide password
+$('toggle-pw').onclick = () => {
+  const hidden = $('password').type === 'password';
+  $('password').type = hidden ? 'text' : 'password';
+  $('pw-eye').className = (hidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye') + ' text-sm';
+};
+
+// Password strength
+const rules = {
+  len:   p => p.length >= 8,
+  upper: p => /[A-Z]/.test(p),
+  num:   p => /\d/.test(p),
+  sym:   p => /[^A-Za-z0-9]/.test(p)
+};
+const levels = [
+  { t: 'Enter a password', c: '#334155', cls: 'text-slate-500' },
+  { t: 'Weak',   c: '#f87171', cls: 'text-red-400' },
+  { t: 'Fair',   c: '#fbbf24', cls: 'text-amber-400' },
+  { t: 'Good',   c: '#38bdf8', cls: 'text-[#38bdf8]' },
+  { t: 'Strong', c: '#0094c6', cls: 'text-[#0094c6]' }
+];
+const score = p => p ? Object.values(rules).filter(f => f(p)).length : 0;
+function updateStrength() {
+  const p = $('password').value, s = score(p), L = levels[s];
+  document.querySelectorAll('.seg').forEach((b, i) => b.style.backgroundColor = i < s ? L.c : 'rgba(51,65,85,.6)');
+  $('strength-label').textContent = L.t;
+  $('strength-label').className = 'font-semibold ' + L.cls;
+  const missing = [];
+  if (p) {
+    if (!rules.len(p)) missing.push('8+ characters');
+    if (!rules.upper(p)) missing.push('an uppercase letter');
+    if (!rules.num(p)) missing.push('a number');
+    if (!rules.sym(p)) missing.push('a symbol');
+  }
+  $('pw-hint').textContent = !p ? 'Includes numbers, symbols, and uppercase letters'
+    : missing.length ? 'Add ' + missing.join(', ') : 'Great, this password looks solid';
+}
+$('password').addEventListener('input', updateStrength);
+
+// Validation
+function setError(id, msg) {
+  const input = $(id), box = $('err-' + id);
+  if (input && input.type !== 'checkbox') {
+    input.classList.toggle('input-error', !!msg);
+    if (msg) { input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake'); }
+  }
+  box.querySelector('span').textContent = msg || '';
+  box.classList.toggle('hidden', !msg);
+}
+const validators = {
+  fullName: () => $('fullName').value.trim().length < 2 ? 'Please enter your full name.' : '',
+  email:    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('email').value.trim()) ? '' : 'Enter a valid email address.',
+  password: () => score($('password').value) < 3 ? 'Use 8+ characters plus at least two of: uppercase, number, symbol.' : '',
+  terms:    () => $('terms').checked ? '' : 'Please accept the Terms of Service to continue.'
+};
+Object.keys(validators).forEach(id => {
+  const el = $(id);
+  el.addEventListener(id === 'terms' ? 'change' : 'input', () => {
+    if (!$('err-' + id).classList.contains('hidden')) setError(id, validators[id]());
+  });
+  if (id !== 'terms') el.addEventListener('blur', () => { if (el.value) setError(id, validators[id]()); });
+});
+
+// Submit -> save progress -> go to step 2
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  let ok = true;
+  Object.keys(validators).forEach(id => { const m = validators[id](); setError(id, m); if (m) ok = false; });
+  if (!ok) {
+    const firstBad = ['fullName','email','password','terms'].find(id => !$('err-' + id).classList.contains('hidden'));
+    $(firstBad).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const g = document.querySelector('input[name=calorie_goal]:checked');
+  localStorage.setItem(KEY, JSON.stringify({
+    ...saved,
+    name: $('fullName').value.trim(),
+    email: $('email').value.trim().toLowerCase(),
+    goal: g.value,
+    goalLabel: g.dataset.label,
+    terms: true
+  }));
+  $('next-btn').disabled = true;
+  $('next-label').textContent = 'Saving…';
+  $('next-icon').className = 'fa-solid fa-circle-notch fa-spin text-xs';
+  setTimeout(() => location.href = STEP2_PAGE, 400);
+});
+
+updateStrength();
+</script>
+</body></html>
