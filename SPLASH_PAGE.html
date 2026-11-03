@@ -268,7 +268,7 @@
 <!-- Bottom Actions, Hardware Integration Badges & Navigation Forward -->
 <footer class="relative z-10 px-screen-margin-mobile pb-spacing-xl space-y-4 w-full">
 <!-- Primary Interactive CTA Button with Link to Sign Up -->
-<a class="w-full h-12 rounded-full bg-primary-container hover:bg-primary active:scale-[0.98] text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center space-x-2 shadow-[0_4px_24px_rgba(26,155,205,0.45)] hover:shadow-[0_4px_30px_rgba(121,209,255,0.6)] group transition-all duration-200 cursor-pointer no-underline select-none" href="{{DATA:SCREEN:SCREEN_28}}" id="btn-get-started" onclick="navigateToSignUp(event)" role="button">
+<a class="w-full h-12 rounded-full bg-primary-container hover:bg-primary active:scale-[0.98] text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center space-x-2 shadow-[0_4px_24px_rgba(26,155,205,0.45)] hover:shadow-[0_4px_30px_rgba(121,209,255,0.6)] group transition-all duration-200 cursor-pointer no-underline select-none" href="SIGN_UP\Sign-In_1.html" id="btn-get-started" onclick="navigateToSignUp(event)" role="button">
 <span class="tracking-wide">Get Started</span>
 <span class="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:translate-x-1" data-icon="arrow_forward">arrow_forward</span>
 </a>
@@ -276,7 +276,7 @@
 <div class="text-center py-1">
 <p class="text-body-md font-body-md text-on-surface-variant m-0">
   Already tracking? 
-  <a class="text-primary font-headline-sm font-semibold hover:text-primary-fixed underline underline-offset-4 decoration-primary/40 hover:decoration-primary ml-1 cursor-pointer transition-colors" href="{{DATA:SCREEN:SCREEN_2}}" id="link-login" onclick="navigateToLogin(event)" role="button">Log In</a>
+  <a class="text-primary font-headline-sm font-semibold hover:text-primary-fixed underline underline-offset-4 decoration-primary/40 hover:decoration-primary ml-1 cursor-pointer transition-colors" href="LOG_IN\Log-In.html" id="link-login" onclick="navigateToLogin(event)" role="button">Log In</a>
 </p>
 </div>
 <!-- Regulatory, Compliance & Version Badges (Bottom Fixed Anchor) -->
@@ -309,8 +309,8 @@
 <!-- Interactive Telemetry & Navigation Logic -->
 <script>
     // Navigation Handlers with visual feedback & DataStore screen routing
-    const SIGNUP_TARGET = "{{DATA:SCREEN:SCREEN_28}}";
-    const LOGIN_TARGET = "{{DATA:SCREEN:SCREEN_2}}";
+    const SIGNUP_TARGET = "SIGN_UP/Sign-In_1.html";
+    const LOGIN_TARGET = "LOG_IN/Log-In.html";
 
     function showTransitionFeedback(title, subtitle, icon, targetUrl) {
       const overlay = document.getElementById('transitionOverlay');

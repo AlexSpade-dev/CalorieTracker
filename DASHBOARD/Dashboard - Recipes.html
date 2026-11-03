@@ -1,0 +1,407 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CalorieTracker+ - Recipe Browser</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#051847",
+            "on-secondary-container": "#93d6f9",
+            "on-tertiary-container": "#172756",
+            "surface-tint": "#79d1ff",
+            "on-primary-fixed-variant": "#004c68",
+            "on-background": "#e0e0ff",
+            "on-error-container": "#ffdad6",
+            "tertiary-fixed-dim": "#b6c4fd",
+            "surface-dim": "#0d0f32",
+            "on-secondary-fixed-variant": "#004d66",
+            "primary-container": "#1a9bcd",
+            "on-primary": "#003549",
+            "surface-container-highest": "#2f3255",
+            "surface-container": "#1a1c3e",
+            "surface-container-high": "#242749",
+            "on-surface-variant": "#bec8d0",
+            "inverse-primary": "#006689",
+            "on-primary-container": "#002d40",
+            "primary-fixed-dim": "#79d1ff",
+            "on-secondary": "#003547",
+            "secondary-container": "#015e7c",
+            "outline": "#88929a",
+            "secondary": "#8ccff2",
+            "on-surface": "#e0e0ff",
+            "on-secondary-fixed": "#001e2b",
+            "secondary-fixed-dim": "#8ccff2",
+            "primary": "#79d1ff",
+            "inverse-on-surface": "#2b2d50",
+            "surface": "#0d0f32",
+            "on-primary-fixed": "#001e2c",
+            "secondary-fixed": "#c0e8ff",
+            "outline-variant": "#3e484f",
+            "primary-fixed": "#c3e8ff",
+            "surface-container-low": "#16183a",
+            "background": "#0d0f32",
+            "error": "#ffb4ab",
+            "surface-bright": "#34365a",
+            "on-error": "#690005",
+            "on-tertiary": "#1e2e5d",
+            "inverse-surface": "#e0e0ff",
+            "on-tertiary-fixed-variant": "#354475",
+            "error-container": "#93000a",
+            "surface-container-lowest": "#080a2c",
+            "tertiary": "#b6c4fd",
+            "tertiary-fixed": "#dbe1ff",
+            "surface-variant": "#2f3255",
+            "tertiary-container": "#808fc4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "spacing-2xs": "0.25rem",
+            "bottom-nav-height": "4.5rem",
+            "spacing-3xs": "0.125rem",
+            "spacing-lg": "1.25rem",
+            "spacing-sm": "0.75rem",
+            "spacing-xl": "1.5rem",
+            "spacing-md": "1rem",
+            "screen-margin-mobile": "1rem",
+            "spacing-xs": "0.5rem",
+            "spacing-3xl": "2.5rem",
+            "spacing-2xl": "2rem",
+            "screen-margin-tablet": "1.5rem",
+            "card-padding": "1.25rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "display-hero-mobile": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "display-hero": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "metric-lg": ["Plus Jakarta Sans"],
+            "metric-md": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "display-hero-mobile": ["36px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "display-hero": ["48px", { "lineHeight": "52px", "letterSpacing": "-0.03em", "fontWeight": "800" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "metric-lg": ["32px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "metric-md": ["20px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .bioluminescent-glow {
+      box-shadow: 0 4px 20px -2px rgba(0, 148, 198, 0.35);
+    }
+    .pill-glow {
+      box-shadow: 0 2px 12px rgba(0, 148, 198, 0.25);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md antialiased min-h-screen flex justify-center selection:bg-primary selection:text-on-primary">
+<div class="w-full max-w-lg min-h-screen relative flex flex-col bg-surface-container-lowest pb-24">
+<!-- TopAppBar from Shared Components JSON -->
+<header class="fixed top-0 left-0 right-0 w-full z-50 flex items-center justify-between px-4 h-16 max-w-lg mx-auto bg-surface/80 dark:bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 dark:border-outline-variant/30">
+<div class="flex items-center gap-3">
+<button aria-label="User profile avatar" class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center border border-outline-variant/40 active:scale-95 transition-transform overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="account_circle">account_circle</span>
+</button>
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary tracking-tight">CalorieTracker+</span>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="notifications" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary hover:bg-surface-container/50 dark:hover:bg-surface-container/50 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content Container with Top Offset -->
+<main class="flex-1 px-4 pt-20 flex flex-col gap-5">
+<!-- Header Title & Subtitle -->
+<div class="flex items-baseline justify-between pt-1">
+<div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">Recipe Browser</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Fuel your deficit with macro-aligned precision</p>
+</div>
+<button aria-label="Filter Preferences" class="p-2 rounded-xl bg-surface-container border border-outline-variant/40 text-primary hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="tune">tune</span>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="relative w-full">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="search">search</span>
+</div>
+<input class="w-full h-12 pl-10 pr-10 bg-surface-container border border-outline-variant/40 rounded-xl text-on-surface text-body-md font-body-md placeholder-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all shadow-inner" placeholder="Search healthy recipes, ingredients..." type="text">
+<button aria-label="Voice Search" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="mic">mic</span>
+</button>
+</div>
+<!-- Filter Chips Carousel (Horizontal Scroll) -->
+<section aria-label="Recipe Filters">
+<div class="flex gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4">
+<!-- Active Pill -->
+<button class="px-3.5 py-1.5 rounded-full bg-primary text-on-primary-container font-label-md text-label-md whitespace-nowrap pill-glow transition-all active:scale-95 flex items-center gap-1.5 font-semibold">
+<span class="material-symbols-outlined text-xs" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+            All
+          </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-md text-label-md whitespace-nowrap hover:border-primary/50 transition-all active:scale-95">
+            High Protein
+          </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-md text-label-md whitespace-nowrap hover:border-primary/50 transition-all active:scale-95">
+            Keto
+          </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-md text-label-md whitespace-nowrap hover:border-primary/50 transition-all active:scale-95">
+            Low Calorie (&lt;400)
+          </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-md text-label-md whitespace-nowrap hover:border-primary/50 transition-all active:scale-95">
+            Quick Prep (&lt;15m)
+          </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-md text-label-md whitespace-nowrap hover:border-primary/50 transition-all active:scale-95">
+            Vegan
+          </button>
+</div>
+</section>
+<!-- Featured Recipe Hero Card -->
+<section class="flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-primary font-bold flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            Featured Recipe of the Day
+          </span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Daily Pick</span>
+</div>
+<div class="relative overflow-hidden rounded-2xl bg-surface-container border border-outline-variant/50 shadow-xl group transition-all duration-300 hover:border-primary/40">
+<!-- Hero Food Background Image -->
+<div class="relative h-48 w-full overflow-hidden">
+<img class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" data-alt="A gourmet pan-seared Mediterranean salmon fillet garnished with fresh lemon wedges, sprigs of fragrant rosemary, and cracked sea salt resting on a dark slate surface. Atmospheric deep navy and oceanic blue sidelighting casts vibrant highlights across the flaky pink salmon and olive oil drizzle, framed with cinematic low-key photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVpjG6ITsVLYBfyR8o9-VO2_oGKeksVXwiu5DpAAgaQeCMGirdIzlpfHAuTlrYvkBpiDJfwYpiA3NJ8Xi-4xSFLGnY5mZ1Z3LBLwnZMjPO1lelsfLkZE2ByxOJQMwXjf24A2IDiqiHAhFmwPwLzjiyvwvkNWEVYopYssuFKpJgh1CBKSXCG-kuLqQfNjW1n8vrWg54_vhbFU-L4fZI2Fb0uqaTAlAJt-VkHzY0YGqJEe1i27RK4rYx3Q">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/60 to-transparent"></div>
+<!-- Floating badges on image -->
+<div class="absolute top-3 left-3 flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 text-primary text-label-sm font-label-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="star" data-weight="fill" style="font-variation-settings: 'FILL' 1;">star</span>
+                Top Chef Pick
+              </span>
+</div>
+<button aria-label="Bookmark Recipe" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/40 flex items-center justify-center text-primary active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-base" data-icon="bookmark" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</button>
+</div>
+<!-- Hero Details Content -->
+<div class="p-4 pt-1 flex flex-col gap-3">
+<div>
+<h2 class="text-headline-sm font-headline-sm text-on-surface font-bold tracking-tight">Mediterranean Lemon Herb Salmon</h2>
+<div class="flex items-center gap-3 text-on-surface-variant text-body-sm font-body-sm mt-1">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="schedule">schedule</span>
+                  20 min
+                </span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="speed">speed</span>
+                  Easy Prep
+                </span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="text-primary font-semibold">Deficit-Friendly</span>
+</div>
+</div>
+<!-- Calorie & Macro Pill Bar -->
+<div class="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Calories</span>
+<span class="text-metric-md font-metric-md text-primary font-bold">485 <span class="text-body-sm font-normal text-on-surface-variant">kcal</span></span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-3">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Protein</span>
+<span class="text-metric-md font-metric-md text-on-surface font-bold">42g <span class="text-body-sm font-normal text-on-secondary-container">P</span></span>
+</div>
+<div class="flex flex-col border-l border-outline-variant/30 pl-3">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Fat</span>
+<span class="text-metric-md font-metric-md text-on-surface font-bold">18g <span class="text-body-sm font-normal text-secondary">F</span></span>
+</div>
+</div>
+<!-- Quick Log CTA -->
+<button class="w-full h-11 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center justify-center gap-2 bioluminescent-glow hover:bg-primary transition-all active:scale-98">
+<span class="material-symbols-outlined text-base" data-icon="add_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+              Quick Log Recipe
+            </button>
+</div>
+</div>
+</section>
+<!-- Curated Meal List -->
+<section class="flex flex-col gap-3 pt-1">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-sm font-headline-sm text-on-surface font-bold">Curated Macros</h2>
+<span class="text-body-sm font-body-sm text-primary font-semibold cursor-pointer hover:underline">View All (42)</span>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Card 1: Avocado & Poached Egg Protein Toast -->
+<article class="p-3 rounded-2xl bg-surface-container border border-outline-variant/40 flex gap-3.5 items-center justify-between hover:border-primary/40 transition-colors">
+<div class="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-surface-container-low border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="Artisan multi-grain toast topped with creamy mashed avocado, perfectly soft poached eggs with golden yolk slowly spilling over, and sprinkled with chili flakes and hemp seeds. Dark slate styling with moody, bioluminescent deep navy lighting accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCftPyncjZOBHvWbnF02cabXRWyOzN7-kB9YDNCF45ouHKzNwGyu7cht0MFfuLz-e0MIosIyVb99LDzqAujZ17nFgMQuKP6Cu05K4Eh-0UeGuD2fYcaExQL000CcxL-AwFXg1a54tDGbLRmMhQi0ihsY399O2eVHZRgrE0xd918iqlREFLQzlnWKDv54M03LHuGyEgajueWMmSCA_-dk0Bhet8nIl_77a2BHJl17-X--b2PUidNzm0Zew">
+<div class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-[10px] font-bold text-secondary">
+                12 min
+              </div>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-center justify-between gap-1">
+<h3 class="text-body-md font-body-md font-bold text-on-surface truncate">Avocado &amp; Poached Egg Toast</h3>
+<button aria-label="Favorite Recipe" class="text-on-surface-variant hover:text-primary active:scale-90 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="favorite">favorite</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-label-md font-label-md text-primary font-bold">340 kcal</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">•</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">18g P | 22g C</span>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="px-3 py-1 rounded-full bg-secondary-container hover:bg-primary-container text-on-secondary-container hover:text-on-primary-container text-label-sm font-label-sm font-semibold flex items-center gap-1 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-xs" data-icon="add">add</span>
+                  Add to Log
+                </button>
+<span class="text-body-sm font-body-sm text-on-surface-variant/80">Breakfast</span>
+</div>
+</div>
+</article>
+<!-- Card 2: Zesty Lime Chicken Quinoa Bowl -->
+<article class="p-3 rounded-2xl bg-surface-container border border-outline-variant/40 flex gap-3.5 items-center justify-between hover:border-primary/40 transition-colors">
+<div class="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-surface-container-low border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="A colorful nutrient-dense meal bowl with grilled sliced chicken breast, fluffy white quinoa, black beans, charred corn, diced tomatoes, and fresh cilantro with lime wedges. Shot from high angle with deep prussian blue shadow contrasts and crisp, appetizing textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0Q7u4Acr7EQ5ZQV5yef9s8JL4ZhW8MUTLjZxzht98X-cqFzzFLNFYcjhYOPX8g-42qfAiSpzoXC5k2xE--dhqEw0qnWOfVnNByEnJiL0-jI9ZpDqFS4fxxgfTpF9P_Gn7zTPl72jhTeVHaLhGnHigC748eJaUOCpoiTXA5hhjN0CRW_dKfAkmMyvRjqk9V8JNGmPw1fSqOVNcnU4PgJrrA7p1ge7RKGkxXCyX7BZ0u27tKBEykUrfng">
+<div class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-[10px] font-bold text-secondary">
+                18 min
+              </div>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-center justify-between gap-1">
+<h3 class="text-body-md font-body-md font-bold text-on-surface truncate">Zesty Lime Chicken Quinoa</h3>
+<button aria-label="Favorited Recipe" class="text-primary active:scale-90 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="favorite" data-weight="fill" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-label-md font-label-md text-primary font-bold">520 kcal</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">•</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">46g P | 48g C</span>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="px-3 py-1 rounded-full bg-secondary-container hover:bg-primary-container text-on-secondary-container hover:text-on-primary-container text-label-sm font-label-sm font-semibold flex items-center gap-1 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-xs" data-icon="add">add</span>
+                  Add to Log
+                </button>
+<span class="text-body-sm font-body-sm text-on-surface-variant/80">Lunch / Post-WOD</span>
+</div>
+</div>
+</article>
+<!-- Card 3: Blueberry Chia Superfood Parfait -->
+<article class="p-3 rounded-2xl bg-surface-container border border-outline-variant/40 flex gap-3.5 items-center justify-between hover:border-primary/40 transition-colors">
+<div class="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-surface-container-low border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="A glass jar containing layered Greek yogurt, soaked chia seed pudding, fresh ripe blueberries, toasted sliced almonds, and a drizzle of golden raw honey. Moody deep navy studio background with delicate highlights on glistening berries." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNNP5oME_m0QbVO_9ZBjjgzhfxndJyNVAB2sieVsIVb9oqd4yFfpNbIUle7dqCh5xDwRgmeqoZCGG3znFawIgQ465pQwy1bFpKCgGbnjR5DPBV80roFu1F3EW5XXg4odfxwQzY6HIO_VPHIIfSJsxL9KA-WYiPbg5HnrS0K-6t7QHKGY_7Zx3Qv2cXBsP934fy7bSuWjUvyCKghnAN_DBMWM4xLvGa63_LhnSm_bOhX8E44eze0Aj8Sw">
+<div class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-[10px] font-bold text-secondary">
+                5 min
+              </div>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<div class="flex items-center justify-between gap-1">
+<h3 class="text-body-md font-body-md font-bold text-on-surface truncate">Blueberry Chia Superfood Parfait</h3>
+<button aria-label="Favorite Recipe" class="text-on-surface-variant hover:text-primary active:scale-90 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="favorite">favorite</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-label-md font-label-md text-primary font-bold">290 kcal</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">•</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">15g P | 32g C</span>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="px-3 py-1 rounded-full bg-secondary-container hover:bg-primary-container text-on-secondary-container hover:text-on-primary-container text-label-sm font-label-sm font-semibold flex items-center gap-1 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-xs" data-icon="add">add</span>
+                  Add to Log
+                </button>
+<span class="text-body-sm font-body-sm text-on-surface-variant/80">Snack / Fast Fuel</span>
+</div>
+</div>
+</article>
+</div>
+</section>
+<!-- Quick Micro Telemetry Summary Card -->
+<section class="p-4 rounded-2xl bg-surface-container border border-outline-variant/40 flex items-center justify-between mt-1 mb-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-primary/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="pie_chart">pie_chart</span>
+</div>
+<div>
+<div class="text-body-md font-body-md font-bold text-on-surface">Target Remaining Today</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant">745 kcal • 38g Protein left</div>
+</div>
+</div>
+<div class="text-right">
+<span class="text-label-md font-label-md text-primary font-bold bg-secondary-container/30 border border-primary/20 px-2.5 py-1 rounded-full">
+            In Range
+          </span>
+</div>
+</section>
+</main>
+<!-- BottomNavBar from Shared Components JSON -->
+<!-- Active State Logic: Current page is "Recipe Browser", which matches label "Recipes" -->
+<nav class="fixed bottom-0 left-0 right-0 w-full z-50 flex justify-around items-center h-18 px-4 pb-safe max-w-lg mx-auto bg-surface/90 dark:bg-surface/90 backdrop-blur-xl border-t border-outline-variant/30 dark:border-outline-variant/30">
+<!-- Tab 1: Log (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 active:scale-95 transition-transform duration-150 py-2" href="#log">
+<span class="material-symbols-outlined text-2xl" data-icon="monitoring">monitoring</span>
+<span class="text-label-sm font-label-sm">Log</span>
+</a>
+<!-- Tab 2: Recipes (Active) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary font-semibold gap-1 relative after:content-[''] after:w-1 after:h-1 after:bg-primary dark:after:bg-primary after:rounded-full after:mt-0.5 active:scale-95 transition-transform duration-150 py-2" href="#recipes">
+<span class="material-symbols-outlined text-2xl" data-icon="menu_book" data-weight="fill" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="text-label-sm font-label-sm">Recipes</span>
+</a>
+<!-- Tab 3: Analytics (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 active:scale-95 transition-transform duration-150 py-2" href="#analytics">
+<span class="material-symbols-outlined text-2xl" data-icon="analytics">analytics</span>
+<span class="text-label-sm font-label-sm">Analytics</span>
+</a>
+<!-- Tab 4: Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-secondary-container dark:text-secondary-container hover:text-on-surface-variant dark:hover:text-on-surface-variant gap-1 active:scale-95 transition-transform duration-150 py-2" href="#profile">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</a>
+</nav>
+</div>
+
+
+<g0-textarea-recorder-host id="g0-textarea-recorder"></g0-textarea-recorder-host></body></html>
