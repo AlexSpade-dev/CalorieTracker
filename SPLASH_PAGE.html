@@ -186,14 +186,14 @@
   </style>
 <style>
     body {
-      min-height: max(884px, 100dvh);
+      min-height: 100dvh;
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
   </style>
 </head>
 <body class="bg-surface-container-lowest text-on-surface antialiased selection:bg-primary selection:text-on-primary-container min-h-screen flex items-center justify-center p-0 m-0 w-full overflow-x-hidden">
-<!-- Mobile Frame Container (Full width mobile container with clean centering and zero horizontal overflow) -->
-<main class="relative w-full max-w-[420px] min-h-[884px] h-screen bg-surface-container-lowest overflow-hidden flex flex-col justify-between border-0 md:border md:border-outline-variant/30 shadow-[0_0_80px_rgba(0,18,66,0.9)] mx-auto">
+<!-- Mobile Frame Container -->
+<main class="relative w-full max-w-[420px] min-h-[100dvh] h-[100dvh] bg-surface-container-lowest overflow-hidden flex flex-col justify-between border-0 md:border md:border-outline-variant/30 shadow-[0_0_80px_rgba(0,18,66,0.9)] mx-auto">
 <!-- Deep Ocean Glowing Background Gradients & Ambient Nodes -->
 <div class="absolute inset-0 pointer-events-none overflow-hidden z-0 w-full h-full">
 <!-- Abyssal Deep Radial Core -->
@@ -202,10 +202,10 @@
 <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] rounded-full bg-primary/20 blur-[70px]"></div>
 <!-- Deep Ocean Sub-layer Vignette -->
 <div class="absolute inset-0 bg-gradient-to-b from-surface-container-lowest/40 via-surface-container-low/20 to-surface-container-lowest"></div>
-<!-- Precision Telemetry Grid Lines (Sports Instrument Aesthetics) -->
+<!-- Precision Telemetry Grid Lines -->
 <div class="absolute inset-0 opacity-[0.035] bg-[radial-gradient(#79d1ff_1px,transparent_1px)] [background-size:20px_20px]"></div>
 </div>
-<!-- Top Status / Biometric Sensor Bar (Simulated Hardware Status) -->
+<!-- Top Status / Biometric Sensor Bar -->
 <header class="relative z-10 pt-safe px-screen-margin-mobile pt-6 flex items-center justify-between w-full">
 <div class="flex items-center space-x-2">
 <span class="inline-flex relative flex h-2 w-2">
@@ -233,7 +233,7 @@
 <!-- Center Glowing Icon Shield -->
 <div class="relative z-20 w-24 h-24 rounded-full bg-surface-container flex flex-col items-center justify-center border border-primary/30 shadow-[0_4px_24px_rgba(26,155,205,0.35)]">
 <!-- Live Waveform Micro-SVG -->
-<svg class="w-14 h-10 overflow-visible" fill="none" viewbox="0 0 70 40" xmlns="http://www.w3.org/2000/svg">
+<svg class="w-14 h-10 overflow-visible" fill="none" viewBox="0 0 70 40" xmlns="http://www.w3.org/2000/svg">
 <path class="waveform-stream filter drop-shadow-[0_0_8px_rgba(121,209,255,0.9)]" d="M 0 20 L 18 20 L 26 6 L 35 34 L 44 14 L 52 24 L 58 20 L 70 20" stroke="#79d1ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.75"></path>
 <circle class="filter drop-shadow-[0_0_6px_#79d1ff]" cx="35" cy="34" fill="#79d1ff" r="2.5"></circle>
 </svg>
@@ -254,50 +254,33 @@
 <div class="mt-8 w-full max-w-[300px] mx-auto bg-surface-container-low/90 backdrop-blur-lg border border-outline-variant/30 rounded-xl p-3 shadow-lg">
 <div class="flex items-center justify-between mb-2">
 <div class="flex items-center space-x-2">
-<span class="material-symbols-outlined text-primary text-[16px] animate-spin" data-icon="sync">sync</span>
-<span class="text-label-sm font-label-sm text-primary" id="telemetryStatus">Precision model calibrated.</span>
+<span class="material-symbols-outlined text-primary text-[16px] animate-spin" data-icon="sync" id="syncIcon">sync</span>
+<span class="text-label-sm font-label-sm text-primary" id="telemetryStatus">Synchronizing biological telemetry...</span>
 </div>
-<span class="text-label-sm font-label-sm text-primary font-mono font-semibold" id="telemetryPercent">100%</span>
+<span class="text-label-sm font-label-sm text-primary font-mono font-semibold" id="telemetryPercent">0%</span>
 </div>
 <!-- High-Performance Progress Bar with Glow Tip -->
 <div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden relative">
-<div class="h-full bg-gradient-to-r from-secondary-container via-primary-container to-primary rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_#79d1ff]" id="telemetryProgressBar" style="width: 100%;"></div>
+<div class="h-full bg-gradient-to-r from-secondary-container via-primary-container to-primary rounded-full shadow-[0_0_10px_#79d1ff]" id="telemetryProgressBar" style="width: 0%;"></div>
 </div>
 </div>
 </section>
 <!-- Bottom Actions, Hardware Integration Badges & Navigation Forward -->
 <footer class="relative z-10 px-screen-margin-mobile pb-spacing-xl space-y-4 w-full">
-<!-- Primary Interactive CTA Button with Link to Sign Up -->
-<a class="w-full h-12 rounded-full bg-primary-container hover:bg-primary active:scale-[0.98] text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center space-x-2 shadow-[0_4px_24px_rgba(26,155,205,0.45)] hover:shadow-[0_4px_30px_rgba(121,209,255,0.6)] group transition-all duration-200 cursor-pointer no-underline select-none" href="SIGN_UP\Sign-In_1.html" id="btn-get-started" onclick="navigateToSignUp(event)" role="button">
+<!-- Primary CTA (locked until loading finishes) -->
+<a aria-disabled="true" class="pointer-events-none opacity-50 w-full h-12 rounded-full bg-primary-container hover:bg-primary active:scale-[0.98] text-on-primary-container font-headline-sm text-headline-sm flex items-center justify-center space-x-2 shadow-[0_4px_24px_rgba(26,155,205,0.45)] hover:shadow-[0_4px_30px_rgba(121,209,255,0.6)] group transition-all duration-300 cursor-pointer no-underline select-none" href="SIGN_UP/Sign-In_1.html" id="btn-get-started" role="button">
 <span class="tracking-wide">Get Started</span>
 <span class="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:translate-x-1" data-icon="arrow_forward">arrow_forward</span>
 </a>
-<!-- Secondary Quick Auth Link to Log In Screen -->
+<!-- Secondary Log In link (locked until loading finishes) -->
 <div class="text-center py-1">
 <p class="text-body-md font-body-md text-on-surface-variant m-0">
-  Already tracking? 
-  <a class="text-primary font-headline-sm font-semibold hover:text-primary-fixed underline underline-offset-4 decoration-primary/40 hover:decoration-primary ml-1 cursor-pointer transition-colors" href="LOG_IN\Log-In.html" id="link-login" onclick="navigateToLogin(event)" role="button">Log In</a>
+  Have an Account?
+  <a aria-disabled="true" class="pointer-events-none opacity-50 transition-all duration-300 text-primary font-headline-sm font-semibold hover:text-primary-fixed underline underline-offset-4 decoration-primary/40 hover:decoration-primary ml-1 cursor-pointer" href="LOG_IN/Log-In.html" id="link-login" role="button">Log In</a>
 </p>
 </div>
-<!-- Regulatory, Compliance & Version Badges (Bottom Fixed Anchor) -->
-<div class="pt-2 flex flex-col items-center justify-center space-y-1.5 border-t border-outline-variant/20">
-<div class="flex items-center space-x-3 text-secondary-container">
-<div class="flex items-center space-x-1">
-<span class="material-symbols-outlined text-[13px] text-primary" data-icon="health_and_safety" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
-<span class="text-label-sm font-label-sm text-on-surface-variant text-[10px]">HIPAA Certified</span>
-</div>
-<span class="text-outline-variant text-[10px]">•</span>
-<div class="flex items-center space-x-1">
-<span class="material-symbols-outlined text-[13px] text-primary" data-icon="vital_signs">vital_signs</span>
-<span class="text-label-sm font-label-sm text-on-surface-variant text-[10px]">HealthKit Synced</span>
-</div>
-</div>
-<p class="text-label-sm font-label-sm text-outline-variant text-[10px] tracking-wider">
-          v2.4.0 • Oceanic Engine Release
-        </p>
-</div>
 </footer>
-<!-- Interactive Screen Transition Toast / Simulation Overlay -->
+<!-- Interactive Screen Transition Overlay -->
 <div class="screen-transition-overlay absolute inset-0 bg-surface-container-lowest/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center opacity-0 pointer-events-none" id="transitionOverlay">
 <div class="w-14 h-14 rounded-2xl bg-surface-container-high border border-primary/40 flex items-center justify-center mb-4 shadow-[0_0_24px_rgba(121,209,255,0.3)]">
 <span class="material-symbols-outlined text-primary text-3xl animate-spin" data-icon="sync" id="transitionIcon">sync</span>
@@ -308,7 +291,7 @@
 </main>
 <!-- Interactive Telemetry & Navigation Logic -->
 <script>
-    // Navigation Handlers with visual feedback & DataStore screen routing
+    // Navigation targets
     const SIGNUP_TARGET = "SIGN_UP/Sign-In_1.html";
     const LOGIN_TARGET = "LOG_IN/Log-In.html";
 
@@ -330,12 +313,8 @@
         overlay.classList.add('opacity-100', 'pointer-events-auto');
       }
 
-      // Execute navigation
       setTimeout(() => {
-        if (targetUrl && targetUrl !== '#' && !targetUrl.startsWith('{{')) {
-          window.location.href = targetUrl;
-        } else if (targetUrl && targetUrl.startsWith('{{')) {
-          // Placeholder in workspace environment: redirect or fallback
+        if (targetUrl && targetUrl !== '#') {
           window.location.href = targetUrl;
         }
       }, 500);
@@ -346,9 +325,9 @@
       const btn = document.getElementById('btn-get-started');
       if (btn) btn.classList.add('ring-2', 'ring-primary', 'scale-[0.98]');
       showTransitionFeedback(
-        'Opening Registration', 
-        'Preparing personalized biometric setup...', 
-        'person_add', 
+        'Opening Registration',
+        'Preparing personalized biometric setup...',
+        'person_add',
         SIGNUP_TARGET
       );
     }
@@ -358,27 +337,35 @@
       const link = document.getElementById('link-login');
       if (link) link.classList.add('text-secondary-fixed');
       showTransitionFeedback(
-        'Connecting to Account', 
-        'Retrieving encrypted telemetry credentials...', 
-        'lock_open', 
+        'Connecting to Account',
+        'Retrieving encrypted telemetry credentials...',
+        'lock_open',
         LOGIN_TARGET
       );
     }
 
+    // Reset the page when restored via Back button (bfcache)
+    window.addEventListener('pageshow', (e) => {
+      const overlay = document.getElementById('transitionOverlay');
+      if (overlay) {
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.classList.remove('opacity-100', 'pointer-events-auto');
+      }
+      const btn = document.getElementById('btn-get-started');
+      if (btn) btn.classList.remove('ring-2', 'ring-primary', 'scale-[0.98]');
+      const link = document.getElementById('link-login');
+      if (link) link.classList.remove('text-secondary-fixed');
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
+      const LOAD_DURATION = 2500; // ms (change to 2000-3000 as you like)
+
       const progressBar = document.getElementById('telemetryProgressBar');
       const percentLabel = document.getElementById('telemetryPercent');
       const statusLabel = document.getElementById('telemetryStatus');
+      const syncIcon = document.getElementById('syncIcon');
       const getStartedBtn = document.getElementById('btn-get-started');
       const loginLink = document.getElementById('link-login');
-
-      // Attach direct event listeners
-      if (getStartedBtn) {
-        getStartedBtn.addEventListener('click', navigateToSignUp);
-      }
-      if (loginLink) {
-        loginLink.addEventListener('click', navigateToLogin);
-      }
 
       const statuses = [
         "Synchronizing biological telemetry...",
@@ -387,30 +374,48 @@
         "Precision model calibrated."
       ];
 
-      let progress = 88;
-      let statusIdx = 0;
+      let ready = false;
 
-      // Realistic Micro-Dial / Progress step increments
-      const syncInterval = setInterval(() => {
-        if (progress < 100) {
-          progress += Math.floor(Math.random() * 6) + 3;
-          if (progress > 100) progress = 100;
-          
-          if (progressBar) progressBar.style.width = `${progress}%`;
-          if (percentLabel) percentLabel.textContent = `${progress}%`;
+      // Click handlers (blocked while loading)
+      getStartedBtn.addEventListener('click', (e) => {
+        if (!ready) return e.preventDefault();
+        navigateToSignUp(e);
+      });
+      loginLink.addEventListener('click', (e) => {
+        if (!ready) return e.preventDefault();
+        navigateToLogin(e);
+      });
 
-          if (progress > 92 && statusIdx === 0) {
-            statusIdx = 1;
-            if (statusLabel) statusLabel.textContent = statuses[statusIdx];
-          } else if (progress >= 100) {
-            if (statusLabel) {
-              statusLabel.textContent = statuses[3];
-              statusLabel.classList.add('text-primary');
-            }
-            clearInterval(syncInterval);
-          }
+      function unlockButtons() {
+        ready = true;
+        [getStartedBtn, loginLink].forEach(el => {
+          el.classList.remove('pointer-events-none', 'opacity-50');
+          el.setAttribute('aria-disabled', 'false');
+        });
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
+      }
+
+      const start = performance.now();
+
+      function tick(now) {
+        const t = Math.min((now - start) / LOAD_DURATION, 1);
+        const progress = Math.round(t * 100);
+
+        progressBar.style.width = progress + '%';
+        percentLabel.textContent = progress + '%';
+
+        const idx = t >= 1 ? 3 : t >= 0.7 ? 2 : t >= 0.35 ? 1 : 0;
+        statusLabel.textContent = statuses[idx];
+
+        if (t < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          unlockButtons();
         }
-      }, 600);
+      }
+
+      requestAnimationFrame(tick);
     });
   </script>
+<script src="assets/mobile.js"></script>
 </body></html>

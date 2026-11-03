@@ -211,7 +211,7 @@ Prefer to fill this in later?
 const $ = id => document.getElementById(id);
 const KEY = 'ct_signup', USER_KEY = 'ct_user';
 const STEP1_PAGE = 'Sign-In_1.html';
-const DASHBOARD_PAGE = '../Dashboard%20-%20Logs.html';   // change if your dashboard file is named differently
+const DASHBOARD_PAGE = '../DASHBOARD/Dashboard%20-%20Logs.html';
 
 // Guard: Step 1 must be completed first
 const data = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -377,4 +377,5 @@ $('back-btn').addEventListener('click', () => {
   location.href = STEP1_PAGE;
 });
 </script>
+<script src="../assets/mobile.js"></script>
 </body></html>
