@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Rect, Path, Line, Circle, Defs, LinearGradient as SG, Stop, Text as SText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { T, Row, Icon, Pill, Bar, AppHeader, BottomNav, Scroll, C } from '../components/kit';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, Line, Path, Rect, LinearGradient as SG, Text as SText, Stop } from 'react-native-svg';
+import { AppHeader, Bar, BottomNav, C, Icon, Pill, Row, Scroll, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.45)';
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const FULL = ['Monday, Oct 14', 'Tuesday, Oct 15', 'Wednesday, Oct 16', 'Thursday, Oct 17', 'Friday, Oct 18', 'Saturday, Oct 19', 'Sunday, Oct 20'];
-const INTAKE = [1900, 2050, 1850, 2050, 1850, 2350, 1810];
-const BURN = [2300, 2350, 2250, 2200, 2300, 2450, 2250];
-const TARGET = 2100;
-const RANGES = { Day: 'Oct 17', Week: 'Oct 14 - 20', Month: 'October', Year: '2026' };
+const todayIdx = (new Date().getDay() + 6) % 7; // Monday = 0
+const weekDates = () => { const t = new Date(); return DAYS.map((_, i) => { const d = new Date(t); d.setDate(t.getDate() - todayIdx + i); return d; }); };
+const fmtDate = (d, o) => d.toLocaleDateString('en-US', o);
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
 const Panel = ({ children, style }) => (
@@ -21,54 +19,81 @@ const Panel = ({ children, style }) => (
 );
 const Eyebrow = ({ children }) => <T w="bold" s={10} c={C.secondary} style={{ letterSpacing: 1.1 }}>{children}</T>;
 
-function Chart({ width, sel, onSel }) {
-  const H = 190, padL = 6, padR = 34, top = 14, base = 160, max = 2600, min = 1400;
+function Chart({ width, sel, onSel, intake, burn, target }) {
+  const H = 190, padL = 6, padR = 34, top = 14, base = 160;
+  const max = Math.max(target * 1.15, ...intake, ...burn, 1);
   const bw = 26, gap = (width - padL - padR - bw * 7) / 6;
-  const y = (v) => base - ((v - min) / (max - min)) * (base - top);
+  const y = (v) => base - (v / max) * (base - top);
   const x = (i) => padL + i * (bw + gap);
-  const burnPath = BURN.map((v, i) => `${i ? 'L' : 'M'}${x(i) + bw / 2},${y(v)}`).join(' ');
+  const burnPts = burn.map((v, i) => (v > 0 ? [x(i) + bw / 2, y(v)] : null)).filter(Boolean);
+  const burnPath = burnPts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
   return (
     <Svg width={width} height={H}>
       <Defs>
         <SG id="bar" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#79d1ff" stopOpacity="0.95" /><Stop offset="1" stopColor="#1a5f86" stopOpacity="0.85" /></SG>
         <SG id="barSel" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#c3e8ff" /><Stop offset="1" stopColor="#5fb9e8" /></SG>
       </Defs>
-      {INTAKE.map((v, i) => (
-        <Rect key={i} x={x(i)} y={y(v)} width={bw} height={base - y(v)} rx={7} fill={i === sel ? 'url(#barSel)' : 'url(#bar)'} onPress={() => onSel(i)} />
+      {intake.map((v, i) => (
+        v > 0
+          ? <Rect key={i} x={x(i)} y={y(v)} width={bw} height={base - y(v)} rx={7} fill={i === sel ? 'url(#barSel)' : 'url(#bar)'} onPress={() => onSel(i)} />
+          : <Rect key={i} x={x(i)} y={base - 4} width={bw} height={4} rx={2} fill="rgba(62,72,79,0.55)" onPress={() => onSel(i)} />
       ))}
-      <Path d={burnPath} stroke="#8ccff2" strokeWidth={1.5} fill="none" opacity={0.75} />
-      <Line x1={0} x2={width - padR} y1={y(TARGET)} y2={y(TARGET)} stroke="#b6c4fd" strokeWidth={1} strokeDasharray="4 4" opacity={0.7} />
-      <SText x={width - padR + 3} y={y(TARGET) + 3} fontSize={8} fill="#b6c4fd">TARGET</SText>
+      {burnPts.length > 1 && <Path d={burnPath} stroke="#8ccff2" strokeWidth={1.5} fill="none" opacity={0.75} />}
+      {burnPts.map((p, i) => <Circle key={i} cx={p[0]} cy={p[1]} r={3} fill="#8ccff2" />)}
+      <Line x1={0} x2={width - padR} y1={y(target)} y2={y(target)} stroke="#b6c4fd" strokeWidth={1} strokeDasharray="4 4" opacity={0.7} />
+      <SText x={width - padR + 3} y={y(target) + 3} fontSize={8} fill="#b6c4fd">TARGET</SText>
       {DAYS.map((d, i) => <SText key={i} x={x(i) + bw / 2} y={base + 22} fontSize={11} fill={i === sel ? '#79d1ff' : '#bec8d0'} fontWeight="600" textAnchor="middle">{d}</SText>)}
     </Svg>
   );
 }
 
-function Donut({ size = 128 }) {
+function Donut({ size = 128, segs, label, sub }) {
   const stroke = 16, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
-  const segs = [[45, '#79d1ff'], [30, '#b6c4fd'], [25, '#8ccff2']];
   let off = 0;
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(62,72,79,0.4)" strokeWidth={stroke} fill="none" />
         {segs.map(([p, col], i) => {
-          const len = (circ * p) / 100; const el = <Circle key={i} cx={size / 2} cy={size / 2} r={r} stroke={col} strokeWidth={stroke} fill="none" strokeDasharray={`${len - 2} ${circ}`} strokeDashoffset={-off} />; off += len; return el; })}
+          if (p <= 0) return null;
+          const len = (circ * p) / 100;
+          const el = <Circle key={i} cx={size / 2} cy={size / 2} r={r} stroke={col} strokeWidth={stroke} fill="none" strokeDasharray={`${Math.max(0, len - 2)} ${circ}`} strokeDashoffset={-off} />;
+          off += len; return el;
+        })}
       </Svg>
-      <T w="extrabold" s={24}>100%</T><T s={11} c={C.onSurfaceVariant}>Matched</T>
+      <T w="extrabold" s={24}>{label}</T><T s={11} c={C.onSurfaceVariant}>{sub}</T>
     </View>
   );
 }
 
-export default function Analytics({ tab, onTab }) {
+export default function Analytics({ tab, onTab, meals = [], goal = 2200, water = 0, weight = null, targetWeight = null, baseBurn = 1820 }) {
   const [range, setRange] = useState('Week');
-  const [sel, setSel] = useState(3);
+  const [sel, setSel] = useState(todayIdx);
   const [w, setW] = useState(300);
-  const avg = INTAKE.reduce((a, b) => a + b, 0) / 7;
-  const net = INTAKE[sel] - BURN[sel];
-  const weights = [74.9, 74.8, 74.6, 74.5, 74.4, 74.3, 74.2];
+
+  const dates = weekDates();
+  const RANGES = { Day: fmtDate(dates[todayIdx], { month: 'short', day: 'numeric' }), Week: `${fmtDate(dates[0], { month: 'short', day: 'numeric' })} - ${fmtDate(dates[6], { day: 'numeric' })}`, Month: fmtDate(new Date(), { month: 'long' }), Year: String(new Date().getFullYear()) };
+  const sum = (k) => meals.reduce((n, m) => n + (m[k] || 0), 0);
+  const consumed = sum('kcal');
+  const INTAKE = DAYS.map((_, i) => (i === todayIdx ? consumed : 0));
+  const BURN = DAYS.map((_, i) => (i === todayIdx && consumed > 0 ? baseBurn : 0));
+  const logged = INTAKE.filter((v) => v > 0).length;
+  const avg = logged ? INTAKE.reduce((a, b) => a + b, 0) / logged : 0;
+  const deficit = logged ? (BURN.reduce((a, b) => a + b, 0) - INTAKE.reduce((a, b) => a + b, 0)) / logged : 0;
+  const net = INTAKE[sel] > 0 ? INTAKE[sel] - BURN[sel] : 0;
+  const peak = INTAKE.indexOf(Math.max(...INTAKE));
+
+  const carbs = sum('carbs'), protein = sum('protein'), fats = sum('fats');
+  const macroKcal = carbs * 4 + protein * 4 + fats * 9;
+  const share = (kcal) => (macroKcal ? Math.round((kcal / macroKcal) * 100) : 0);
+  const mac = [
+    ['Carbs', carbs, Math.round((goal * 0.4) / 4), share(carbs * 4), '#79d1ff'],
+    ['Protein', protein, Math.round((goal * 0.3) / 4), share(protein * 4), '#b6c4fd'],
+    ['Fats', fats, Math.round((goal * 0.3) / 9), share(fats * 9), '#8ccff2'],
+  ];
+  const goalPct = goal ? Math.round((consumed / goal) * 100) : 0;
+  const left = weight && targetWeight ? Math.abs(weight - targetWeight) : null;
   const lw = 150, lh = 58;
-  const pts = weights.map((v, i) => [(i / 6) * (lw - 8) + 4, 6 + ((v - 74.1) / 0.9) * (lh - 20)]);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -95,17 +120,17 @@ export default function Analytics({ tab, onTab }) {
           <Row style={{ justifyContent: 'space-between', marginTop: 6, alignItems: 'flex-start' }}>
             <Row style={{ alignItems: 'baseline' }}><T w="extrabold" s={38} style={{ letterSpacing: -1 }}>{fmt(avg)}</T><T s={11} c={C.onSurfaceVariant}> avg kcal/day</T></Row>
             <View style={{ alignItems: 'flex-end' }}>
-              <Pill style={{ backgroundColor: 'rgba(1,94,124,0.5)' }}><Row><Icon n="trending_down" s={12} c={C.primary} /><T w="bold" s={11} c={C.primary} style={{ marginLeft: 3 }}>-320 kcal</T></Row></Pill>
-              <T s={10} c={C.onSurfaceVariant} style={{ marginTop: 4 }}>Avg Net Deficit</T>
+              <Pill style={{ backgroundColor: 'rgba(1,94,124,0.5)' }}><Row><Icon n={deficit < 0 ? 'trending_up' : 'trending_down'} s={12} c={C.primary} /><T w="bold" s={11} c={C.primary} style={{ marginLeft: 3 }}>{deficit < 0 ? '+' : '-'}{fmt(Math.abs(deficit))} kcal</T></Row></Pill>
+              <T s={10} c={C.onSurfaceVariant} style={{ marginTop: 4 }}>{deficit < 0 ? 'Avg Net Surplus' : 'Avg Net Deficit'}</T>
             </View>
           </Row>
           <Row style={{ marginTop: 14, padding: 10, borderRadius: 12, backgroundColor: 'rgba(8,10,44,0.45)', justifyContent: 'space-between' }}>
             <Row style={{ flex: 1 }}><View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.primary, marginRight: 8 }} />
-              <T w="bold" s={12} style={{ flex: 1 }}>{FULL[sel]}</T></Row>
+              <T w="bold" s={12} style={{ flex: 1 }}>{fmtDate(dates[sel], { weekday: 'long', month: 'short', day: 'numeric' })}</T></Row>
             <T s={11} c={C.onSurfaceVariant}>Intake: <T w="bold" s={11} c={C.primary}>{fmt(INTAKE[sel])} kcal</T></T>
-            <View style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#0b0d2b' }}><T w="bold" s={10} c={net <= 0 ? C.text : C.error}>{net > 0 ? '+' : ''}{net} net</T></View>
+            <View style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#0b0d2b' }}><T w="bold" s={10} c={net <= 0 ? C.text : C.error}>{net > 0 ? '+' : ''}{fmt(net)} net</T></View>
           </Row>
-          <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ marginTop: 14 }}><Chart width={w} sel={sel} onSel={setSel} /></View>
+          <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ marginTop: 14 }}><Chart width={w} sel={sel} onSel={setSel} intake={INTAKE} burn={BURN} target={goal} /></View>
           <Row style={{ justifyContent: 'space-between', marginTop: 10 }}>
             <Row><View style={{ width: 12, height: 8, borderRadius: 3, backgroundColor: C.primary, marginRight: 6 }} /><T s={10} c={C.onSurfaceVariant}>Intake (kcal)</T></Row>
             <Row><View style={{ width: 12, height: 2, backgroundColor: '#8ccff2', marginRight: 6 }} /><T s={10} c={C.onSurfaceVariant}>Burn Velocity</T></Row>
@@ -116,15 +141,15 @@ export default function Analytics({ tab, onTab }) {
         <Panel>
           <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1 }}><Eyebrow>WEEKLY FUEL BALANCE</Eyebrow><T w="bold" s={20} style={{ marginTop: 4, lineHeight: 25 }}>Macronutrient{'\n'}Distribution</T></View>
-            <Pill style={{ backgroundColor: 'rgba(1,94,124,0.55)' }}><T w="bold" s={10} c={C.primary}>Optimal{'\n'}Range</T></Pill>
+            <Pill style={{ backgroundColor: 'rgba(1,94,124,0.55)' }}><T w="bold" s={10} c={C.primary}>{consumed ? 'Tracking' : 'No data\nyet'}</T></Pill>
           </Row>
           <Row style={{ marginTop: 16 }}>
-            <Donut />
+            <Donut segs={mac.map((m) => [m[3], m[4]])} label={`${goalPct}%`} sub="of goal" />
             <View style={{ flex: 1, marginLeft: 16 }}>
-              {[['Carbs (45%)', '222g / 225g', 98.7, '#79d1ff'], ['Protein (30%)', '148g / 150g', 98.7, '#b6c4fd'], ['Fats (25%)', '55g / 58g', 94.8, '#8ccff2']].map(([l, v, p, col]) => (
-                <View key={l} style={{ marginBottom: 12 }}>
-                  <Row style={{ justifyContent: 'space-between' }}><Row><View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: col, marginRight: 6 }} /><T w="bold" s={11} c={col}>{l}</T></Row><T w="semibold" s={10}>{v}</T></Row>
-                  <Bar pct={p} h={4} color={col} track="rgba(62,72,79,0.5)" style={{ marginTop: 5 }} />
+              {mac.map(([n, v, t, sh, col]) => (
+                <View key={n} style={{ marginBottom: 12 }}>
+                  <Row style={{ justifyContent: 'space-between' }}><Row><View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: col, marginRight: 6 }} /><T w="bold" s={11} c={col}>{n} ({sh}%)</T></Row><T w="semibold" s={10}>{Math.round(v)}g / {t}g</T></Row>
+                  <Bar pct={t ? (v / t) * 100 : 0} h={4} color={col} track="rgba(62,72,79,0.5)" style={{ marginTop: 5 }} />
                 </View>
               ))}
             </View>
@@ -134,24 +159,26 @@ export default function Analytics({ tab, onTab }) {
         <Panel>
           <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View><Eyebrow>BODY COMPOSITION</Eyebrow><T w="bold" s={20} style={{ marginTop: 4 }}>Weigh-in Telemetry</T></View>
-            <Row><Icon n="arrow_downward" s={12} c={C.primary} /><T w="bold" s={11} c={C.primary}> -0.4 kg this week</T></Row>
+            <Row><Icon n="arrow_downward" s={12} c={C.primary} /><T w="bold" s={11} c={C.primary}> 0.0 kg this week</T></Row>
           </Row>
           <Row style={{ justifyContent: 'space-between', marginTop: 14 }}>
             <View>
-              <Row style={{ alignItems: 'baseline' }}><T w="extrabold" s={40} style={{ letterSpacing: -1 }}>74.2</T><T s={13} c={C.onSurfaceVariant}> kg</T></Row>
-              <T s={11} c={C.onSurfaceVariant}>Target: 72.0 kg (-2.2 left)</T>
+              <Row style={{ alignItems: 'baseline' }}><T w="extrabold" s={40} style={{ letterSpacing: -1 }}>{weight ? weight : '--'}</T><T s={13} c={C.onSurfaceVariant}> kg</T></Row>
+              <T s={11} c={C.onSurfaceVariant}>{targetWeight ? `Target: ${targetWeight} kg${left !== null ? ` (${left.toFixed(1)} left)` : ''}` : 'Add your weight in Profile'}</T>
             </View>
             <Svg width={lw} height={lh}>
-              <Defs><SG id="area" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#79d1ff" stopOpacity="0.3" /><Stop offset="1" stopColor="#79d1ff" stopOpacity="0" /></SG></Defs>
-              <Path d={`${line} L${pts[6][0]},${lh} L${pts[0][0]},${lh} Z`} fill="url(#area)" />
-              <Path d={line} stroke="#79d1ff" strokeWidth={2} fill="none" />
-              <Circle cx={pts[6][0]} cy={pts[6][1]} r={4} fill="#79d1ff" />
+              <Line x1={4} x2={lw - 4} y1={lh / 2} y2={lh / 2} stroke="#79d1ff" strokeWidth={2} opacity={weight ? 1 : 0.3} />
+              {weight ? <Circle cx={lw - 4} cy={lh / 2} r={4} fill="#79d1ff" /> : null}
             </Svg>
           </Row>
         </Panel>
 
         <T w="bold" s={10} c={C.onSurfaceVariant} style={{ letterSpacing: 1.1, marginBottom: 10 }}>WEEKLY TELEMETRY INSIGHTS</T>
-        {[['speed', 'Average Daily Deficit', '320 kcal', 'Consistent with steady fat-loss phase target'], ['water_drop', 'Hydration Adherence', '92%', '6 of 7 days surpassed 2.5L benchmark'], ['local_fire_department', 'Peak Density Day', 'Saturday', '2,350 kcal (+250 kcal social dinner buffer)']].map(([ic, t, v, s]) => (
+        {[
+          ['speed', 'Average Daily Deficit', `${fmt(Math.max(0, deficit))} kcal`, logged ? 'Based on the days you logged' : 'Log a meal to see your trend'],
+          ['water_drop', 'Hydration Today', `${Math.min(100, Math.round(water / 25))}%`, `${(water / 1000).toFixed(1)}L of 2.5L daily benchmark`],
+          ['local_fire_department', 'Peak Density Day', logged ? fmtDate(dates[peak], { weekday: 'long' }) : '--', logged ? `${fmt(INTAKE[peak])} kcal logged` : 'No meals logged yet'],
+        ].map(([ic, t, v, s]) => (
           <Row key={t} style={{ padding: 16, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: border, marginBottom: 10, alignItems: 'flex-start' }}>
             <View style={{ width: 40, alignItems: 'center', paddingTop: 4 }}><Icon n={ic} s={22} c={C.primary} /></View>
             <View style={{ flex: 1, marginLeft: 6 }}>

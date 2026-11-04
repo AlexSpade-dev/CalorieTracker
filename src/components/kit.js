@@ -1,12 +1,9 @@
-import React from 'react';
-import { View, Pressable, Modal, StyleSheet, Image, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Circle, Defs, RadialGradient, LinearGradient as SG, Stop, Path } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText } from './AppText';
+import Svg, { Circle, Defs, RadialGradient, LinearGradient as SG, Stop } from 'react-native-svg';
 import { COLORS as C } from '../theme/theme';
-import { IMG } from '../data/images';
+import { AppText } from './AppText';
 
 // Material Symbols names that do not exist in MaterialIcons get a close substitute
 const ALIAS = { vital_signs: 'monitor_heart', sprint: 'directions_run', shield_with_heart: 'health_and_safety', calendar_clock: 'event', barcode_scanner: 'qr_code_scanner', monitoring: 'show_chart' };
@@ -68,13 +65,13 @@ export function CTA({ title, icon = 'arrow_forward', onPress, style, disabled, t
   return (
     <Pressable disabled={disabled} onPress={onPress}
       style={({ pressed }) => [{
-        height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexDirection: 'row',
+        height: 48, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexDirection: 'row',
         backgroundColor: tone === 'primary' ? C.primaryContainer : 'rgba(26,28,62,0.9)',
         borderWidth: tone === 'primary' ? 0 : 1, borderColor: 'rgba(62,72,79,0.6)',
         opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.98 : 1 }],
         shadowColor: C.primaryContainer, shadowOpacity: tone === 'primary' ? 0.5 : 0, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: tone === 'primary' ? 8 : 0,
       }, style]}>
-      <T w="semibold" s={16} c={tone === 'primary' ? C.onPrimaryContainer : C.text} style={{ letterSpacing: 0.3 }}>{title}</T>
+      <T w="semibold" s={16} numberOfLines={1} c={tone === 'primary' ? C.onPrimaryContainer : C.text} style={{ letterSpacing: 0.3, flexShrink: 1 }}>{title}</T>
       {icon ? <Icon n={icon} s={19} c={tone === 'primary' ? C.onPrimaryContainer : C.text} style={{ marginLeft: 8 }} /> : null}
     </Pressable>
   );
@@ -118,20 +115,39 @@ export function Ring({ size = 168, stroke = 12, pct = 70, children, colors = [C.
   );
 }
 
-export const Avatar = ({ size = 40, uri = IMG.avatar }) => (
-  <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: 'rgba(121,209,255,0.5)', overflow: 'hidden', backgroundColor: C.surfaceHigh, alignItems: 'center', justifyContent: 'center' }}>
-    <Icon n="person" s={size * 0.55} c={C.secondary} style={{ position: 'absolute' }} />
-    <Image source={{ uri }} style={{ width: size, height: size }} />
-  </View>
+export const Avatar = ({ size = 40, uri, onPress, badge }) => (
+  <Pressable disabled={!onPress} onPress={onPress} style={{ width: size, height: size }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: 'rgba(121,209,255,0.5)', overflow: 'hidden', backgroundColor: C.surfaceHigh, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon n="person" s={size * 0.55} c={C.secondary} />
+      {uri ? <Image source={{ uri }} style={{ position: 'absolute', width: size, height: size }} /> : null}
+    </View>
+    {badge ? (
+      <View style={{ position: 'absolute', right: -2, bottom: -2, width: size * 0.32, height: size * 0.32, borderRadius: size * 0.16, backgroundColor: C.primaryContainer, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon n="photo_camera" s={size * 0.17} c={C.onPrimaryContainer} />
+      </View>
+    ) : null}
+  </Pressable>
 );
+
+// selectable card with a glow ring (solid fill, so no "box in a box" on Android)
+export function Choice({ on, onPress, children, style, radius = 14 }) {
+  return (
+    <Pressable onPress={onPress} style={[{ marginBottom: 10 }, style]}>
+      {on && <View pointerEvents="none" style={{ position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderRadius: radius + 6, backgroundColor: 'rgba(121,209,255,0.07)' }} />}
+      {on && <View pointerEvents="none" style={{ position: 'absolute', top: -3, left: -3, right: -3, bottom: -3, borderRadius: radius + 3, borderWidth: 3, borderColor: 'rgba(121,209,255,0.22)' }} />}
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: radius, borderWidth: on ? 1.5 : 1, borderColor: on ? C.primary : 'rgba(62,72,79,0.55)', backgroundColor: on ? '#123a56' : C.surface, shadowColor: C.primary, shadowOpacity: on ? 0.7 : 0, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } }}>
+        {children}
+      </View>
+    </Pressable>
+  );
+}
 
 // app header used by Log / Analytics / Recipes
 export function AppHeader({ recipes }) {
   return (
     <Row style={{ justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: 'rgba(62,72,79,0.35)', backgroundColor: C.bg }}>
       <Row>
-        {recipes ? <Icon n="account_circle" s={36} c={C.primary} /> : <Avatar />}
-        <View style={{ marginLeft: 10 }}>
+        <View>
           <T w="bold" s={20} c={C.primary} style={{ letterSpacing: -0.4 }}>CalorieTracker+</T>
           {!recipes && <Row><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary, marginRight: 5 }} /><T w="semibold" s={10} c={C.primary}>Sync Active</T></Row>}
         </View>

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Backdrop, T, Row, Icon, CTA, Pill, C } from '../components/kit';
 import { Field } from '../components/Field';
+import { Backdrop, C, Choice, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.55)';
 
@@ -37,6 +37,29 @@ function strength(pw) {
   return { n: pw ? n : 0, label: !pw ? 'Enter a password' : n <= 1 ? 'Weak' : n === 2 ? 'Fair' : n === 3 ? 'Good' : 'Strong' };
 }
 
+function Missing({ items, onClose }) {
+  return (
+    <Sheet visible={items.length > 0} onClose={onClose} mode="center">
+      <Row>
+        <IconBox n="error_outline" c={C.error} bg="rgba(255,180,171,0.12)" />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <T w="bold" s={17}>Almost there!</T>
+          <T s={12} c={C.onSurfaceVariant}>Please complete these to continue:</T>
+        </View>
+      </Row>
+      <View style={{ marginTop: 14, marginBottom: 18 }}>
+        {items.map((m) => (
+          <Row key={m} style={{ marginBottom: 8, alignItems: 'flex-start' }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.error, marginTop: 6, marginRight: 10 }} />
+            <T s={13} c={C.text} style={{ flex: 1 }}>{m}</T>
+          </Row>
+        ))}
+      </View>
+      <CTA title="Got it" icon={null} onPress={onClose} />
+    </Sheet>
+  );
+}
+
 const GOALS = [
   { kcal: 1800, tag: 'DEFICIT', desc: 'Fat Loss & Lean Conditioning', icon: 'local_fire_department', tint: '#ffb4ab' },
   { kcal: 2200, tag: 'OPTIMAL', desc: 'Maintenance & Daily Energy', icon: 'balance', tint: C.primary },
@@ -47,6 +70,7 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
   const [d, setD] = useState({ name: '', email: '', password: '', goal: 2200, agree: false, ...draft });
   const [show, setShow] = useState(false);
   const [err, setErr] = useState({});
+  const [miss, setMiss] = useState([]);
   const set = (k, v) => { setD((x) => ({ ...x, [k]: v })); setErr((e) => ({ ...e, [k]: false })); };
   const st = strength(d.password);
   const barCol = st.n <= 1 ? C.error : st.n === 2 ? '#ffd27a' : C.primary;
@@ -54,7 +78,12 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
   const next = () => {
     const e = { name: !d.name.trim(), email: !/^\S+@\S+\.\S+$/.test(d.email.trim()), password: d.password.length < 6, agree: !d.agree };
     setErr(e);
-    if (!Object.values(e).some(Boolean)) onNext(d);
+    const list = [];
+    if (e.name) list.push('Enter your full name');
+    if (e.email) list.push('Enter a valid email address');
+    if (e.password) list.push('Password must be at least 6 characters');
+    if (e.agree) list.push('Agree to the Terms of Service and Privacy Policy');
+    if (list.length) setMiss(list); else onNext(d);
   };
 
   return (
@@ -78,14 +107,14 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
             {GOALS.map((g) => {
               const on = d.goal === g.kcal;
               return (
-                <Pressable key={g.kcal} onPress={() => set('goal', g.kcal)} style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: on ? 1.5 : 1, borderColor: on ? C.primary : border, backgroundColor: on ? 'rgba(26,155,205,0.14)' : C.surface, marginBottom: 10, shadowColor: C.primary, shadowOpacity: on ? 0.35 : 0, shadowRadius: 10, elevation: on ? 5 : 0 }}>
+                <Choice key={g.kcal} on={on} onPress={() => set('goal', g.kcal)}>
                   <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: on ? C.primary : 'rgba(136,146,154,0.6)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>{on && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }} />}</View>
                   <View style={{ flex: 1 }}>
                     <Row><T w="bold" s={15}>{g.kcal.toLocaleString('en-US')} kcal</T><View style={{ marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(121,209,255,0.12)' }}><T w="bold" s={9} c={g.tint} style={{ letterSpacing: 0.6 }}>{g.tag}</T></View></Row>
                     <T s={11} c={C.onSurfaceVariant} style={{ marginTop: 2 }}>{g.desc}</T>
                   </View>
                   <Icon n={g.icon} s={18} c={on ? C.primary : C.outline} />
-                </Pressable>
+                </Choice>
               );
             })}
 
@@ -94,6 +123,7 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
               <T s={12} c={C.onSurfaceVariant} style={{ flex: 1, marginLeft: 10, lineHeight: 18 }}>I agree to the <T w="semibold" s={12} c={C.text} style={{ textDecorationLine: 'underline' }}>Terms of Service</T> and acknowledge the <T w="semibold" s={12} c={C.text} style={{ textDecorationLine: 'underline' }}>Privacy Policy</T>.</T>
             </Pressable>
             <CTA title="Next" onPress={next} />
+            <Missing items={miss} onClose={() => setMiss([])} />
             <Row style={{ justifyContent: 'center', marginTop: 20 }}>
               <T s={13} c={C.onSurfaceVariant}>Already have an account? </T>
               <Pressable onPress={onSignIn} hitSlop={8}><T w="bold" s={13} c={C.primary}>Sign In</T></Pressable>
@@ -114,13 +144,19 @@ const LEVELS = [
 export function SignUp2({ draft, onBack, onComplete, onSkip }) {
   const [d, setD] = useState({ sex: 'Male', age: '', height: '', weight: '', target: '', level: 'moderate', ...draft });
   const [err, setErr] = useState({});
+  const [miss, setMiss] = useState([]);
   const set = (k, v) => { setD((x) => ({ ...x, [k]: v })); setErr((e) => ({ ...e, [k]: false })); };
   const num = (k) => (v) => set(k, v.replace(/[^0-9.]/g, ''));
 
   const done = () => {
     const e = { age: !+d.age, height: !+d.height, weight: !+d.weight, target: !+d.target };
     setErr(e);
-    if (!Object.values(e).some(Boolean)) onComplete(d);
+    const list = [];
+    if (e.age) list.push('Enter your age');
+    if (e.height) list.push('Enter your height (cm)');
+    if (e.weight) list.push('Enter your current weight (kg)');
+    if (e.target) list.push('Enter your target weight (kg)');
+    if (list.length) setMiss(list); else onComplete(d);
   };
 
   return (
@@ -156,14 +192,14 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
             {LEVELS.map((l) => {
               const on = d.level === l.id;
               return (
-                <Pressable key={l.id} onPress={() => set('level', l.id)} style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: on ? 1.5 : 1, borderColor: on ? C.primary : border, backgroundColor: on ? 'rgba(26,155,205,0.14)' : C.surface, marginBottom: 10, shadowColor: C.primary, shadowOpacity: on ? 0.35 : 0, shadowRadius: 10, elevation: on ? 5 : 0 }}>
+                <Choice key={l.id} on={on} onPress={() => set('level', l.id)}>
                   <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: on ? C.primary : 'rgba(136,146,154,0.6)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>{on && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }} />}</View>
                   <View style={{ flex: 1 }}>
                     <Row><T w="bold" s={14}>{l.title}</T><View style={{ marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: on ? 'rgba(121,209,255,0.2)' : 'rgba(136,146,154,0.15)' }}><T w="bold" s={9} c={on ? C.primary : C.outline}>{l.mult}</T></View></Row>
                     <T s={11} c={C.onSurfaceVariant} style={{ marginTop: 2 }}>{l.desc}</T>
                   </View>
                   <Icon n={l.icon} s={18} c={on ? C.primary : C.outline} />
-                </Pressable>
+                </Choice>
               );
             })}
 
@@ -185,6 +221,7 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
             </View>
 
             <CTA title="Complete Registration" onPress={done} />
+            <Missing items={miss} onClose={() => setMiss([])} />
             <Row style={{ justifyContent: 'center', marginTop: 18 }}>
               <T s={12} c={C.onSurfaceVariant}>Prefer to fill this in later? </T>
               <Pressable onPress={onSkip} hitSlop={8}><T w="bold" s={12} c={C.primary}>Skip to Dashboard</T></Pressable>

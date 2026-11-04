@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { T, Row, Icon, Pill, Bar, Ring, Sheet, IconBox, CTA, AppHeader, BottomNav, Scroll, C } from '../components/kit';
+import { useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
+import { AppHeader, Bar, BottomNav, C, CTA, Icon, IconBox, Pill, Ring, Row, Scroll, Sheet, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.45)';
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
@@ -162,7 +162,7 @@ function HydrationDialog({ visible, onClose, water, goal, onConfirm }) {
       </View>
       <Row style={{ gap: 10, marginTop: 18 }}>
         <CTA tone="ghost" title="Cancel" icon={null} onPress={onClose} style={{ flex: 1 }} />
-        <CTA title={`Confirm & Log (+${vol >= 1000 ? '1.0L' : vol + 'ml'})`} icon="check" onPress={() => onConfirm(vol)} style={{ flex: 1.7 }} />
+        <CTA title={`Confirm +${vol >= 1000 ? '1.0L' : vol + 'ml'}`} icon="check" onPress={() => onConfirm(vol)} style={{ flex: 1.6 }} />
       </Row>
     </Sheet>
   );

@@ -1,16 +1,17 @@
-import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
+import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { AppHeader, Avatar, BottomNav, C, Card, CTA, Icon, Row, Scroll, T } from './src/components/kit';
-import Analytics from './src/screens/Analytics';
-import Dashboard from './src/screens/Dashboard';
-import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
-import Login from './src/screens/Login';
-import Recipes from './src/screens/Recipes';
-import { SignUp1, SignUp2 } from './src/screens/SignUp';
+import { T, Row, Icon, Avatar, CTA, AppHeader, BottomNav, Scroll, Card, C } from './src/components/kit';
 import SplashScreen from './src/screens/SplashScreen';
+import Login from './src/screens/Login';
+import { SignUp1, SignUp2 } from './src/screens/SignUp';
+import Dashboard from './src/screens/Dashboard';
+import Recipes from './src/screens/Recipes';
+import Analytics from './src/screens/Analytics';
+import { QuickAdd, Overdraft, GoalHit } from './src/screens/Dialogs';
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -33,13 +34,15 @@ function Toast({ toast, onClose }) {
   );
 }
 
-function Profile({ user, goal, tab, onTab, onSignOut }) {
+function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut }) {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: C.bg }}><AppHeader /></SafeAreaView>
       <Scroll>
         <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 20 }}>
-          <Avatar size={84} />
+          <Avatar size={96} uri={photo} onPress={onPick} badge />
+          <Pressable onPress={onPick} hitSlop={8} style={{ marginTop: 10 }}><T w="semibold" s={12} c={C.primary}>{photo ? 'Change photo' : 'Add profile photo'}</T></Pressable>
+          {photo ? <Pressable onPress={onRemovePhoto} hitSlop={8} style={{ marginTop: 4 }}><T s={11} c={C.outline}>Remove photo</T></Pressable> : null}
           <T w="extrabold" s={24} style={{ marginTop: 12 }}>{user.name}</T>
           <T s={13} c={C.onSurfaceVariant}>{user.email}</T>
         </View>
@@ -63,6 +66,7 @@ export default function App() {
   const [meals, setMeals] = useState(DEMO_MEALS);
   const [water, setWater] = useState(1800);
   const [toast, setToast] = useState(null);
+  const [photo, setPhoto] = useState(null);
   const [quick, setQuick] = useState(false);
   const [pending, setPending] = useState(null);
   const [goalHit, setGoalHit] = useState(false);
@@ -80,11 +84,16 @@ export default function App() {
   };
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  const pickPhoto = async () => {
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (!r.canceled && r.assets && r.assets[0]) { setPhoto(r.assets[0].uri); say('Photo updated', 'Your profile picture was changed.'); }
+  };
+
   // ----- auth -----
   const login = (email, pw) => {
     const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === pw);
     if (!u) return false;
-    setUser(u);
+    setUser(u); setPhoto(null);
     setMeals(u === DEMO ? DEMO_MEALS : []);
     setWater(u === DEMO ? 1800 : 0);
     goalShown.current = false;
@@ -95,7 +104,7 @@ export default function App() {
   const register = (d1, d2) => {
     const u = { name: (d1.name || 'Friend').trim().split(' ')[0], email: d1.email || 'you@example.com', password: d1.password || '', goal: d1.goal || 2200, profile: d2 };
     setUsers((x) => [...x, u]);
-    setUser(u); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
+    setUser(u); setPhoto(null); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
   };
 
   // ----- logging -----
@@ -140,8 +149,8 @@ export default function App() {
           onAddWater={(ml) => { setWater((w) => w + ml); say('Action confirmed', 'Update saved successfully.'); }}
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
-        {tab === 'Analytics' && <Analytics {...common} />}
-        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} onSignOut={() => setScreen('login')} />}
+        {tab === 'Analytics' && <Analytics {...common} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
+        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={() => setScreen('login')} />}
         <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />
         <Overdraft visible={!!pending} pending={pending} consumed={consumed} goal={goal} onConfirm={settle} onAdjust={adjust} onCancel={() => setPending(null)} />
         <GoalHit visible={goalHit} consumed={consumed} goal={goal} onDone={() => { setGoalHit(false); say('Check-in saved', 'Nice work hitting your goal today.'); }} onReview={() => { setGoalHit(false); setTab('Log'); }} />
