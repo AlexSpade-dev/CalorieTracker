@@ -1,164 +1,159 @@
 import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
-import { useMemo, useState } from 'react';
-import {
-  Alert, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text, TextInput,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from './src/theme/theme';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { AppHeader, Avatar, BottomNav, C, Card, CTA, Icon, Row, Scroll, T } from './src/components/kit';
+import Analytics from './src/screens/Analytics';
+import Dashboard from './src/screens/Dashboard';
+import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
+import Login from './src/screens/Login';
+import Recipes from './src/screens/Recipes';
+import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
-   if (screen === 'welcome') {
-     return <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
-   }
-const recipes = [
-  { name: 'Mediterranean Lemon Herb Salmon', kcal: 580, protein: 42, carbs: 45, fat: 18, time: '25 min', tag: 'High Protein' },
-  { name: 'Avocado & Poached Egg Toast', kcal: 340, protein: 18, carbs: 29, fat: 17, time: '15 min', tag: 'Quick Prep' },
-  { name: 'Zesty Lime Chicken Quinoa', kcal: 465, protein: 39, carbs: 48, fat: 12, time: '20 min', tag: 'High Protein' },
-  { name: 'Blueberry Chia Superfood Parfait', kcal: 290, protein: 14, carbs: 36, fat: 9, time: '10 min', tag: 'Vegan' },
+
+// demo account from the design (Login: alex@example.com / 1412)
+const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
+const DEMO_MEALS = [
+  { id: 1, meal: 'Breakfast', name: 'Oatmeal with Berries & Whey', kcal: 420, carbs: 60, protein: 25, fats: 10 },
+  { id: 2, meal: 'Lunch', name: 'Grilled Salmon Bowl & Quinoa', kcal: 680, carbs: 75, protein: 55, fats: 20 },
+  { id: 3, meal: 'Snack', name: 'Greek Yogurt & Almonds', kcal: 350, carbs: 30, protein: 30, fats: 15 },
 ];
-const initialMeals = [
-  { id: 1, meal: 'Breakfast', name: 'Greek Yogurt & Mixed Berries', kcal: 320 },
-  { id: 2, meal: 'Lunch', name: 'Grilled Chicken Power Bowl', kcal: 540 },
-  { id: 3, meal: 'Snack', name: 'Almonds & Apple', kcal: 180 },
-];
-function Button({ title, onPress, secondary=false, style }) {
-  return <Pressable onPress={onPress} style={[styles.button, secondary && styles.secondaryButton, style]}><Text style={[styles.buttonText, secondary && styles.secondaryButtonText]}>{title}</Text></Pressable>;
+
+function Toast({ toast, onClose }) {
+  if (!toast) return null;
+  return (
+    <SafeAreaView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 8, left: 0, right: 0, zIndex: 50 }}>
+      <Row style={{ marginHorizontal: 16, padding: 12, borderRadius: 16, backgroundColor: '#1a1c3e', borderWidth: 1, borderColor: 'rgba(121,209,255,0.4)', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 12, elevation: 12 }}>
+        <Icon n="check_circle" s={22} c={C.primary} />
+        <View style={{ flex: 1, marginLeft: 10 }}><T w="bold" s={13}>{toast.title}</T><T s={11} c={C.onSurfaceVariant}>{toast.body}</T></View>
+        <Pressable onPress={onClose} hitSlop={10}><Icon n="close" s={18} c={C.outline} /></Pressable>
+      </Row>
+    </SafeAreaView>
+  );
 }
-function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType }) {
-  return <View style={styles.fieldWrap}><Text style={styles.label}>{label}</Text><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={COLORS.muted} secureTextEntry={secureTextEntry} keyboardType={keyboardType || 'default'} style={styles.input}/></View>;
+
+function Profile({ user, goal, tab, onTab, onSignOut }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: C.bg }}><AppHeader /></SafeAreaView>
+      <Scroll>
+        <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 20 }}>
+          <Avatar size={84} />
+          <T w="extrabold" s={24} style={{ marginTop: 12 }}>{user.name}</T>
+          <T s={13} c={C.onSurfaceVariant}>{user.email}</T>
+        </View>
+        <Card style={{ padding: 16, marginBottom: 16 }}>
+          <Row style={{ justifyContent: 'space-between' }}><T s={13} c={C.onSurfaceVariant}>Daily calorie goal</T><T w="bold" s={14} c={C.primary}>{goal.toLocaleString('en-US')} kcal</T></Row>
+        </Card>
+        <CTA tone="ghost" title="Sign Out" icon="logout" onPress={onSignOut} />
+      </Scroll>
+      <BottomNav active={tab} onChange={onTab} />
+    </View>
+  );
 }
-function Card({ children, style }) { return <View style={[styles.card, style]}>{children}</View>; }
-function Metric({ label, value, unit, color=COLORS.primary }) {
-  return <Card style={styles.metric}><Text style={styles.muted}>{label}</Text><Text style={[styles.metricValue,{color}]}>{value}<Text style={styles.unit}> {unit}</Text></Text></Card>;
-}
+
 export default function App() {
   const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
-  const [screen,setScreen] = useState('welcome');
-  const [tab,setTab] = useState('Log');
-  const [name,setName] = useState('');
-  const [email,setEmail] = useState('');
-  const [password,setPassword] = useState('');
-  const [age,setAge] = useState('26');
-  const [height,setHeight] = useState('178');
-  const [weight,setWeight] = useState('74.5');
-  const [target,setTarget] = useState('70');
-  const [sex,setSex] = useState('Male');
-  const [goal,setGoal] = useState('2200');
-  const [meals,setMeals] = useState(initialMeals);
-  const [water,setWater] = useState(1250);
-  const [search,setSearch] = useState('');
-  const [filter,setFilter] = useState('All');
-  const [period,setPeriod] = useState('Week');
-  const [showQuick,setShowQuick] = useState(false);
-  const [foodName,setFoodName] = useState('');
-  const [foodKcal,setFoodKcal] = useState('250');
-  const consumed = meals.reduce((n,m)=>n+m.kcal,0);
-  const remaining = Math.max(0,Number(goal)-consumed);
-  const visibleRecipes = useMemo(()=>recipes.filter(r=>(filter==='All'||r.tag===filter|| (filter==='Low Calorie'&&r.kcal<400)) && r.name.toLowerCase().includes(search.toLowerCase())),[filter,search]);
-  const addMeal = (item) => { setMeals(old=>[...old,{...item,id:Date.now(),meal:'Snack'}]); setShowQuick(false); setFoodName(''); setFoodKcal('250'); Alert.alert('Added to your log',`${item.name} · ${item.kcal} kcal`); };
-  const logRecipe = r => addMeal({name:r.name,kcal:r.kcal});
-  const goDashboard = t => {setTab(t);setScreen('dashboard');};
-  const heading = (title,sub) => <View style={styles.heading}><Text style={styles.h1}>{title}</Text>{sub ? <Text style={styles.muted}>{sub}</Text>:null}</View>;
+  const [screen, setScreen] = useState('welcome'); // welcome | login | signup1 | signup2 | app
+  const [tab, setTab] = useState('Log');
+  const [users, setUsers] = useState([DEMO]);
+  const [user, setUser] = useState(DEMO);
+  const [draft, setDraft] = useState({});
+  const [meals, setMeals] = useState(DEMO_MEALS);
+  const [water, setWater] = useState(1800);
+  const [toast, setToast] = useState(null);
+  const [quick, setQuick] = useState(false);
+  const [pending, setPending] = useState(null);
+  const [goalHit, setGoalHit] = useState(false);
+  const goalShown = useRef(false);
+  const timer = useRef(null);
+
+  const goal = user.goal || 2200;
+  const consumed = meals.reduce((n, m) => n + m.kcal, 0);
+  const proteinLeft = (goal * 0.3) / 4 - meals.reduce((n, m) => n + (m.protein || 0), 0);
+
+  const say = (title, body) => {
+    setToast({ title, body });
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(null), 2600);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  // ----- auth -----
+  const login = (email, pw) => {
+    const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === pw);
+    if (!u) return false;
+    setUser(u);
+    setMeals(u === DEMO ? DEMO_MEALS : []);
+    setWater(u === DEMO ? 1800 : 0);
+    goalShown.current = false;
+    setTab('Log');
+    setScreen('app');
+    return true;
+  };
+  const register = (d1, d2) => {
+    const u = { name: (d1.name || 'Friend').trim().split(' ')[0], email: d1.email || 'you@example.com', password: d1.password || '', goal: d1.goal || 2200, profile: d2 };
+    setUsers((x) => [...x, u]);
+    setUser(u); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
+  };
+
+  // ----- logging -----
+  const commit = (m, msg) => {
+    const total = consumed + m.kcal;
+    setMeals((x) => [...x, { id: Date.now() + Math.random(), ...m }]);
+    say(msg ? msg[0] : 'Action confirmed', msg ? msg[1] : 'Update saved successfully.');
+    if (!goalShown.current && total >= goal * 0.95 && total <= goal) {
+      goalShown.current = true;
+      setTimeout(() => setGoalHit(true), 500);
+    }
+  };
+  const attempt = (m) => {
+    if (consumed + m.kcal > goal) { setTimeout(() => setPending(m), 350); return; }
+    commit(m);
+  };
+  const settle = (pick) => {
+    const over = consumed + pending.kcal - goal;
+    const msg = pick === 'borrow' ? ['Meal logged', `Tomorrow's target set to ${(goal - over).toLocaleString('en-US')} kcal.`]
+      : pick === 'burn' ? ['Meal logged', 'Rest day burn credit of 250 kcal applied.'] : ['Meal logged', 'Surplus logged. Baseline resets tomorrow.'];
+    commit(pending, msg);
+    setPending(null);
+  };
+  const adjust = () => {
+    const k = 0.75;
+    const p = { ...pending, kcal: Math.round(pending.kcal * k), carbs: (pending.carbs || 0) * k, protein: (pending.protein || 0) * k, fats: (pending.fats || 0) * k, sub: '0.75 serving' };
+    if (consumed + p.kcal <= goal) { setPending(null); commit(p, ['Portion adjusted', 'Logged at 75% to stay within your target.']); } else setPending(p);
+  };
 
   if (!fontsLoaded) return null;
-  const authScreen = screen==='welcome'||screen==='login'||screen==='signup1'||screen==='signup2';
-  return <SafeAreaView style={styles.safe}>
-    <StatusBar barStyle="light-content" backgroundColor={COLORS.bg}/>
-    {authScreen ? <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-      <ScrollView contentContainerStyle={styles.authContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.logo}><Text style={styles.logoText}>CalorieTracker<Text style={{color:COLORS.primary}}>+</Text></Text></View>
-        {screen==='welcome' ? <>
-          <View style={styles.hero}><Text style={styles.eyebrow}>PRECISION METABOLIC INTELLIGENCE</Text><Text style={styles.heroTitle}>Your health,{"\n"}in balance.</Text><Text style={styles.body}>Master your nutrition with scientific clarity. Track calories, understand your macros, and build healthier habits.</Text></View>
-          <Button title="Get started  →" onPress={()=>setScreen('signup1')}/>
-          <Button title="I already have an account" secondary onPress={()=>setScreen('login')}/>
-        </> : screen==='login' ? <>
-          {heading('Welcome back','Log in to continue your health journey.')}
-          <Field label="Email address" value={email} onChangeText={setEmail} placeholder="alex@example.com" keyboardType="email-address"/>
-          <Field label="Password" value={password} onChangeText={setPassword} placeholder="Your password" secureTextEntry/>
-          <Button title="Log In  →" onPress={()=>{if(!email||!password)Alert.alert('Missing details','Enter your email and password.');else goDashboard('Log')}}/>
-          <Button title="Create an account" secondary onPress={()=>setScreen('signup1')}/>
-        </> : screen==='signup1' ? <>
-          {heading('Start Your Health Journey','Step 1 of 2 · Account & daily goal')}
-          <Field label="Full name" value={name} onChangeText={setName} placeholder="e.g. Alex Morgan"/>
-          <Field label="Email address" value={email} onChangeText={setEmail} placeholder="alex@example.com" keyboardType="email-address"/>
-          <Field label="Password" value={password} onChangeText={setPassword} placeholder="Create a strong password" secureTextEntry/>
-          <Text style={styles.label}>Daily calorie target</Text>
-          <View style={styles.wrap}>{['1800','2200','2600'].map((v,i)=><Pressable key={v} onPress={()=>setGoal(v)} style={[styles.choice,goal===v&&styles.choiceActive]}><Text style={styles.choiceText}>{v} kcal</Text><Text style={styles.mutedSmall}>{['Deficit','Optimal','Surplus'][i]}</Text></Pressable>)}</View>
-          <Button title="Next  →" onPress={()=>{if(!name||!email||!password)Alert.alert('Complete your details','Please enter your name, email and password.');else setScreen('signup2')}}/>
-          <Button title="Back to login" secondary onPress={()=>setScreen('login')}/>
-        </> : <>
-          {heading('Physical Stats & Targets','Step 2 of 2 · Personalize your metabolic burn rate')}
-          <Text style={styles.label}>Biological sex</Text><View style={styles.wrap}>{['Male','Female'].map(v=><Pressable key={v} onPress={()=>setSex(v)} style={[styles.choice,{flex:1},sex===v&&styles.choiceActive]}><Text style={styles.choiceText}>{v}</Text></Pressable>)}</View>
-          <Field label="Age" value={age} onChangeText={setAge} keyboardType="numeric" placeholder="26"/>
-          <Field label="Height (cm)" value={height} onChangeText={setHeight} keyboardType="numeric" placeholder="178"/>
-          <Field label="Current weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="74.5"/>
-          <Field label="Target weight (kg)" value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="70"/>
-          <Button title="Complete registration  →" onPress={()=>goDashboard('Log')}/>
-          <Button title="Skip to dashboard" secondary onPress={()=>goDashboard('Log')}/>
-        </>}
-      </ScrollView>
-    </KeyboardAvoidingView> : <>
-      <View style={styles.topbar}><Text style={styles.logoText}>CalorieTracker<Text style={{color:COLORS.primary}}>+</Text></Text><Text style={styles.avatar}>{(name||'A').slice(0,1).toUpperCase()}</Text></View>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        {tab==='Log' ? <>
-          {heading(`Good morning${name?', '+name.split(' ')[0]:''} 👋`,"Here's your nutrition overview for today.")}
-          <Card>
-            <Text style={styles.label}>DAILY CALORIE INTAKE</Text>
-            <View style={styles.calorieRow}><Text style={styles.bigNumber}>{consumed.toLocaleString()}</Text><Text style={styles.muted}> / {goal} kcal</Text></View>
-            <View style={styles.progress}><View style={[styles.progressFill,{width:`${Math.min(100,consumed/Number(goal)*100)}%`}]}/></View>
-            <View style={styles.rowBetween}><Text style={styles.muted}>{remaining.toLocaleString()} kcal remaining</Text><Text style={styles.primaryText}>{Math.round(consumed/Number(goal)*100)}%</Text></View>
-          </Card>
-          <View style={styles.row}><Metric label="Protein" value="62" unit="g"/><Metric label="Carbs" value="84" unit="g"/><Metric label="Fat" value="28" unit="g"/></View>
-          {heading("Today's Meals","Your food entries for today")}
-          {meals.map(m=><Card key={m.id} style={styles.meal}><View style={{flex:1}}><Text style={styles.mutedSmall}>{m.meal}</Text><Text style={styles.cardTitle}>{m.name}</Text></View><Text style={styles.primaryText}>{m.kcal} kcal</Text></Card>)}
-          <Button title="+  Quick add food" onPress={()=>setShowQuick(true)}/>
-          {heading('Hydration','Daily water goal · 2,500 ml')}
-          <Card><View style={styles.rowBetween}><Text style={styles.cardTitle}>💧 {water.toLocaleString()} ml</Text><Text style={styles.primaryText}>{Math.round(water/2500*100)}%</Text></View><View style={styles.progress}><View style={[styles.progressFill,{width:`${Math.min(100,water/25)}%`} ]}/></View><View style={styles.wrap}>{[250,500,750,1000].map(v=><Pressable key={v} style={styles.waterBtn} onPress={()=>setWater(w=>w+v)}><Text style={styles.primaryText}>+{v}ml</Text></Pressable>)}</View></Card>
-        </> : tab==='Recipes' ? <>
-          {heading('Recipe Browser','Discover meals that fit your goals.')}
-          <TextInput value={search} onChangeText={setSearch} placeholder="Search healthy recipes..." placeholderTextColor={COLORS.muted} style={styles.input}/>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical:12}}>{['All','High Protein','Low Calorie','Quick Prep','Vegan'].map(f=><Pressable key={f} onPress={()=>setFilter(f)} style={[styles.chip,filter===f&&styles.chipActive]}><Text style={styles.chipText}>{f}</Text></Pressable>)}</ScrollView>
-          {visibleRecipes.map(r=><Card key={r.name} style={styles.recipe}><View style={styles.recipeArt}><Text style={{fontFamily:'PlusJakartaSans_400Regular',fontSize:34}}>🥗</Text></View><Text style={styles.cardTitle}>{r.name}</Text><Text style={styles.muted}>{r.kcal} kcal  ·  {r.time}  ·  {r.protein}g protein</Text><View style={styles.rowBetween}><Text style={styles.primaryText}>{r.tag}</Text><Button title="Add to Log" onPress={()=>logRecipe(r)} style={{paddingVertical:9,paddingHorizontal:16}}/></View></Card>)}
-        </> : <>
-          {heading('Analytics & Trends','Your progress at a glance.')}
-          <View style={styles.wrap}>{['Day','Week','Month','Year'].map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[styles.chip,period===v&&styles.chipActive]}><Text style={styles.chipText}>{v}</Text></Pressable>)}</View>
-          <Card><Text style={styles.label}>CALORIE INTAKE · {period.toUpperCase()}</Text><Text style={styles.bigNumber}>{consumed.toLocaleString()} <Text style={styles.unit}>kcal today</Text></Text><View style={styles.barChart}>{[48,72,58,88,64,78,consumed/Number(goal)*100].map((v,i)=><View key={i} style={styles.barCol}><View style={[styles.bar,{height:Math.max(12,Math.min(100,v))}]}/><Text style={styles.mutedSmall}>{['M','T','W','T','F','S','S'][i]}</Text></View>)}</View></Card>
-          <View style={styles.row}><Metric label="Avg. calories" value="1,940" unit="kcal"/><Metric label="Daily deficit" value="260" unit="kcal"/></View>
-          <Card><Text style={styles.cardTitle}>Macronutrient Distribution</Text><View style={styles.macroLine}><Text style={styles.muted}>Protein</Text><Text style={styles.primaryText}>30%</Text></View><View style={styles.progress}><View style={[styles.progressFill,{width:'30%'}]}/></View><View style={styles.macroLine}><Text style={styles.muted}>Carbohydrates</Text><Text style={styles.primaryText}>45%</Text></View><View style={styles.progress}><View style={[styles.progressFill,{width:'45%'}]}/></View><View style={styles.macroLine}><Text style={styles.muted}>Fat</Text><Text style={styles.primaryText}>25%</Text></View><View style={styles.progress}><View style={[styles.progressFill,{width:'25%'}]}/></View></Card>
-        </>}
-      </ScrollView>
-      <View style={styles.bottomNav}>{['Log','Recipes','Analytics','Profile'].map((v,i)=><Pressable key={v} onPress={()=>v==='Profile'?Alert.alert('Profile','Profile settings are not included in the supplied HTML pages yet.'):setTab(v)} style={styles.navItem}><Text style={[styles.navIcon,tab===v&&styles.primaryText]}>{['◉','▤','▥','●'][i]}</Text><Text style={[styles.navLabel,tab===v&&styles.primaryText]}>{v}</Text></Pressable>)}</View>
-      {showQuick&&<View style={styles.overlay}><Card style={styles.modal}><Text style={styles.h2}>Quick add food</Text><Field label="Food name" value={foodName} onChangeText={setFoodName} placeholder="e.g. Banana"/><Field label="Calories (kcal)" value={foodKcal} onChangeText={setFoodKcal} keyboardType="numeric" placeholder="250"/><Button title="Add to today's log" onPress={()=>{if(!foodName.trim()||!Number(foodKcal))return Alert.alert('Enter food details');addMeal({name:foodName.trim(),kcal:Number(foodKcal)})}}/><Button title="Cancel" secondary onPress={()=>setShowQuick(false)}/></Card></View>}
-    </>}
-  </SafeAreaView>;
-}
 
-const styles = StyleSheet.create({
- safe:{flex:1,backgroundColor:COLORS.bg}, authContent:{flexGrow:1,padding:24,justifyContent:'center',paddingBottom:40},
- logo:{alignItems:'center',marginBottom:36},logoText:{fontSize:22,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,letterSpacing:-.5},
- hero:{marginBottom:34},eyebrow:{color:COLORS.primary,fontSize:10,fontFamily:'PlusJakartaSans_800ExtraBold',letterSpacing:2,marginBottom:14},
- heroTitle:{fontSize:44,lineHeight:49,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:16},body:{fontFamily:'PlusJakartaSans_400Regular',fontSize:15,lineHeight:24,color:COLORS.muted},
- heading:{marginBottom:20},h1:{fontSize:26,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:5},h2:{fontSize:22,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:18},
- muted:{fontFamily:'PlusJakartaSans_400Regular',fontSize:13,color:COLORS.muted},mutedSmall:{fontFamily:'PlusJakartaSans_400Regular',fontSize:11,color:COLORS.muted},label:{fontSize:11,fontFamily:'PlusJakartaSans_700Bold',color:COLORS.muted,marginBottom:8,letterSpacing:.5},
- fieldWrap:{marginBottom:16},input:{fontFamily:'PlusJakartaSans_400Regular',backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,paddingHorizontal:14,paddingVertical:13,color:COLORS.text,fontSize:14,marginBottom:4},
- button:{backgroundColor:COLORS.primaryStrong,borderRadius:14,paddingVertical:15,paddingHorizontal:18,alignItems:'center',justifyContent:'center',marginTop:10},
- buttonText:{color:'#06172b',fontSize:14,fontFamily:'PlusJakartaSans_800ExtraBold'},secondaryButton:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border},secondaryButtonText:{color:COLORS.text},
- safeArea:{flex:1},topbar:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:COLORS.border},
- avatar:{width:34,height:34,borderRadius:17,backgroundColor:COLORS.surface2,color:COLORS.primary,textAlign:'center',textAlignVertical:'center',fontFamily:'PlusJakartaSans_800ExtraBold',overflow:'hidden',paddingTop:8},
- page:{padding:18,paddingBottom:30},card:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:18,padding:17,marginBottom:14},
- calorieRow:{flexDirection:'row',alignItems:'baseline',marginTop:8,marginBottom:12},bigNumber:{fontSize:36,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text},progress:{height:8,backgroundColor:COLORS.border,borderRadius:10,overflow:'hidden',marginVertical:10},progressFill:{height:'100%',backgroundColor:COLORS.primary,borderRadius:10},
- row:{flexDirection:'row',gap:10},rowBetween:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},metric:{flex:1,padding:13},metricValue:{fontSize:23,fontFamily:'PlusJakartaSans_800ExtraBold',marginTop:7},unit:{fontSize:11,color:COLORS.muted,fontFamily:'PlusJakartaSans_600SemiBold'},primaryText:{color:COLORS.primary,fontFamily:'PlusJakartaSans_800ExtraBold',fontSize:13},
- meal:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},cardTitle:{fontSize:14,fontFamily:'PlusJakartaSans_700Bold',color:COLORS.text,marginVertical:4},
- wrap:{flexDirection:'row',flexWrap:'wrap',gap:8,marginVertical:10},choice:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,padding:13,minWidth:'29%',alignItems:'center'},choiceActive:{borderColor:COLORS.primary,backgroundColor:'#102b48'},choiceText:{color:COLORS.text,fontFamily:'PlusJakartaSans_700Bold',fontSize:13},
- waterBtn:{paddingVertical:9,paddingHorizontal:12,borderRadius:10,backgroundColor:COLORS.surface2,borderWidth:1,borderColor:COLORS.border},
- chip:{paddingVertical:9,paddingHorizontal:13,borderRadius:20,backgroundColor:COLORS.surface2,borderWidth:1,borderColor:COLORS.border,marginRight:7},chipActive:{backgroundColor:'#12415b',borderColor:COLORS.primary},chipText:{color:COLORS.text,fontSize:12,fontFamily:'PlusJakartaSans_700Bold'},
- recipe:{padding:14},recipeArt:{height:100,borderRadius:12,backgroundColor:'#1d3150',alignItems:'center',justifyContent:'center',marginBottom:10},
- bottomNav:{height:66,backgroundColor:COLORS.surface,borderTopWidth:1,borderTopColor:COLORS.border,flexDirection:'row',justifyContent:'space-around',alignItems:'center',paddingBottom:5},
- navItem:{alignItems:'center',justifyContent:'center',flex:1},navIcon:{fontFamily:'PlusJakartaSans_400Regular',fontSize:19,color:COLORS.muted},navLabel:{fontSize:10,color:COLORS.muted,marginTop:3,fontFamily:'PlusJakartaSans_700Bold'},
- barChart:{height:145,flexDirection:'row',alignItems:'flex-end',justifyContent:'space-around',marginTop:20},barCol:{alignItems:'center',justifyContent:'flex-end',height:'100%',gap:8},bar:{width:20,backgroundColor:COLORS.primary,borderRadius:6,minHeight:10},macroLine:{flexDirection:'row',justifyContent:'space-between',marginTop:12},
- overlay:{position:'absolute',top:0,bottom:0,left:0,right:0,backgroundColor:'rgba(0,0,0,.72)',justifyContent:'center',padding:20},modal:{padding:20},
-});
+  let body;
+  if (screen === 'welcome') body = <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
+  else if (screen === 'login') body = <Login onLogin={login} onSignUp={() => setScreen('signup1')} />;
+  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup2'); }} />;
+  else if (screen === 'signup2') body = <SignUp2 draft={draft.step2} onBack={() => setScreen('signup1')} onComplete={(d2) => register(draft, d2)} onSkip={() => register(draft, {})} />;
+  else {
+    const common = { tab, onTab: setTab };
+    body = (
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        {tab === 'Log' && <Dashboard {...common} name={user.name} goal={goal} meals={meals} water={water}
+          onAddWater={(ml) => { setWater((w) => w + ml); say('Action confirmed', 'Update saved successfully.'); }}
+          onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
+        {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
+        {tab === 'Analytics' && <Analytics {...common} />}
+        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} onSignOut={() => setScreen('login')} />}
+        <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />
+        <Overdraft visible={!!pending} pending={pending} consumed={consumed} goal={goal} onConfirm={settle} onAdjust={adjust} onCancel={() => setPending(null)} />
+        <GoalHit visible={goalHit} consumed={consumed} goal={goal} onDone={() => { setGoalHit(false); say('Check-in saved', 'Nice work hitting your goal today.'); }} onReview={() => { setGoalHit(false); setTab('Log'); }} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      {body}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </SafeAreaProvider>
+  );
+}
