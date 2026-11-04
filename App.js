@@ -1,10 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
+import { useMemo, useState } from 'react';
 import {
-  SafeAreaView, View, Text, TextInput, Pressable, ScrollView,
-  StyleSheet, StatusBar, Alert, KeyboardAvoidingView, Platform
+  Alert, KeyboardAvoidingView, Platform,
+  Pressable, ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text, TextInput,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from './src/theme/theme';
-
+import SplashScreen from './src/screens/SplashScreen';
+   if (screen === 'welcome') {
+     return <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
+   }
 const recipes = [
   { name: 'Mediterranean Lemon Herb Salmon', kcal: 580, protein: 42, carbs: 45, fat: 18, time: '25 min', tag: 'High Protein' },
   { name: 'Avocado & Poached Egg Toast', kcal: 340, protein: 18, carbs: 29, fat: 17, time: '15 min', tag: 'Quick Prep' },
@@ -27,6 +36,7 @@ function Metric({ label, value, unit, color=COLORS.primary }) {
   return <Card style={styles.metric}><Text style={styles.muted}>{label}</Text><Text style={[styles.metricValue,{color}]}>{value}<Text style={styles.unit}> {unit}</Text></Text></Card>;
 }
 export default function App() {
+  const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
   const [screen,setScreen] = useState('welcome');
   const [tab,setTab] = useState('Log');
   const [name,setName] = useState('');
@@ -54,6 +64,7 @@ export default function App() {
   const goDashboard = t => {setTab(t);setScreen('dashboard');};
   const heading = (title,sub) => <View style={styles.heading}><Text style={styles.h1}>{title}</Text>{sub ? <Text style={styles.muted}>{sub}</Text>:null}</View>;
 
+  if (!fontsLoaded) return null;
   const authScreen = screen==='welcome'||screen==='login'||screen==='signup1'||screen==='signup2';
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" backgroundColor={COLORS.bg}/>
@@ -111,7 +122,7 @@ export default function App() {
           {heading('Recipe Browser','Discover meals that fit your goals.')}
           <TextInput value={search} onChangeText={setSearch} placeholder="Search healthy recipes..." placeholderTextColor={COLORS.muted} style={styles.input}/>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginVertical:12}}>{['All','High Protein','Low Calorie','Quick Prep','Vegan'].map(f=><Pressable key={f} onPress={()=>setFilter(f)} style={[styles.chip,filter===f&&styles.chipActive]}><Text style={styles.chipText}>{f}</Text></Pressable>)}</ScrollView>
-          {visibleRecipes.map(r=><Card key={r.name} style={styles.recipe}><View style={styles.recipeArt}><Text style={{fontSize:34}}>🥗</Text></View><Text style={styles.cardTitle}>{r.name}</Text><Text style={styles.muted}>{r.kcal} kcal  ·  {r.time}  ·  {r.protein}g protein</Text><View style={styles.rowBetween}><Text style={styles.primaryText}>{r.tag}</Text><Button title="Add to Log" onPress={()=>logRecipe(r)} style={{paddingVertical:9,paddingHorizontal:16}}/></View></Card>)}
+          {visibleRecipes.map(r=><Card key={r.name} style={styles.recipe}><View style={styles.recipeArt}><Text style={{fontFamily:'PlusJakartaSans_400Regular',fontSize:34}}>🥗</Text></View><Text style={styles.cardTitle}>{r.name}</Text><Text style={styles.muted}>{r.kcal} kcal  ·  {r.time}  ·  {r.protein}g protein</Text><View style={styles.rowBetween}><Text style={styles.primaryText}>{r.tag}</Text><Button title="Add to Log" onPress={()=>logRecipe(r)} style={{paddingVertical:9,paddingHorizontal:16}}/></View></Card>)}
         </> : <>
           {heading('Analytics & Trends','Your progress at a glance.')}
           <View style={styles.wrap}>{['Day','Week','Month','Year'].map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[styles.chip,period===v&&styles.chipActive]}><Text style={styles.chipText}>{v}</Text></Pressable>)}</View>
@@ -128,26 +139,26 @@ export default function App() {
 
 const styles = StyleSheet.create({
  safe:{flex:1,backgroundColor:COLORS.bg}, authContent:{flexGrow:1,padding:24,justifyContent:'center',paddingBottom:40},
- logo:{alignItems:'center',marginBottom:36},logoText:{fontSize:22,fontWeight:'800',color:COLORS.text,letterSpacing:-.5},
- hero:{marginBottom:34},eyebrow:{color:COLORS.primary,fontSize:10,fontWeight:'800',letterSpacing:2,marginBottom:14},
- heroTitle:{fontSize:44,lineHeight:49,fontWeight:'800',color:COLORS.text,marginBottom:16},body:{fontSize:15,lineHeight:24,color:COLORS.muted},
- heading:{marginBottom:20},h1:{fontSize:26,fontWeight:'800',color:COLORS.text,marginBottom:5},h2:{fontSize:22,fontWeight:'800',color:COLORS.text,marginBottom:18},
- muted:{fontSize:13,color:COLORS.muted},mutedSmall:{fontSize:11,color:COLORS.muted},label:{fontSize:11,fontWeight:'700',color:COLORS.muted,marginBottom:8,letterSpacing:.5},
- fieldWrap:{marginBottom:16},input:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,paddingHorizontal:14,paddingVertical:13,color:COLORS.text,fontSize:14,marginBottom:4},
+ logo:{alignItems:'center',marginBottom:36},logoText:{fontSize:22,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,letterSpacing:-.5},
+ hero:{marginBottom:34},eyebrow:{color:COLORS.primary,fontSize:10,fontFamily:'PlusJakartaSans_800ExtraBold',letterSpacing:2,marginBottom:14},
+ heroTitle:{fontSize:44,lineHeight:49,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:16},body:{fontFamily:'PlusJakartaSans_400Regular',fontSize:15,lineHeight:24,color:COLORS.muted},
+ heading:{marginBottom:20},h1:{fontSize:26,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:5},h2:{fontSize:22,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text,marginBottom:18},
+ muted:{fontFamily:'PlusJakartaSans_400Regular',fontSize:13,color:COLORS.muted},mutedSmall:{fontFamily:'PlusJakartaSans_400Regular',fontSize:11,color:COLORS.muted},label:{fontSize:11,fontFamily:'PlusJakartaSans_700Bold',color:COLORS.muted,marginBottom:8,letterSpacing:.5},
+ fieldWrap:{marginBottom:16},input:{fontFamily:'PlusJakartaSans_400Regular',backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,paddingHorizontal:14,paddingVertical:13,color:COLORS.text,fontSize:14,marginBottom:4},
  button:{backgroundColor:COLORS.primaryStrong,borderRadius:14,paddingVertical:15,paddingHorizontal:18,alignItems:'center',justifyContent:'center',marginTop:10},
- buttonText:{color:'#06172b',fontSize:14,fontWeight:'800'},secondaryButton:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border},secondaryButtonText:{color:COLORS.text},
+ buttonText:{color:'#06172b',fontSize:14,fontFamily:'PlusJakartaSans_800ExtraBold'},secondaryButton:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border},secondaryButtonText:{color:COLORS.text},
  safeArea:{flex:1},topbar:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:COLORS.border},
- avatar:{width:34,height:34,borderRadius:17,backgroundColor:COLORS.surface2,color:COLORS.primary,textAlign:'center',textAlignVertical:'center',fontWeight:'800',overflow:'hidden',paddingTop:8},
+ avatar:{width:34,height:34,borderRadius:17,backgroundColor:COLORS.surface2,color:COLORS.primary,textAlign:'center',textAlignVertical:'center',fontFamily:'PlusJakartaSans_800ExtraBold',overflow:'hidden',paddingTop:8},
  page:{padding:18,paddingBottom:30},card:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:18,padding:17,marginBottom:14},
- calorieRow:{flexDirection:'row',alignItems:'baseline',marginTop:8,marginBottom:12},bigNumber:{fontSize:36,fontWeight:'800',color:COLORS.text},progress:{height:8,backgroundColor:COLORS.border,borderRadius:10,overflow:'hidden',marginVertical:10},progressFill:{height:'100%',backgroundColor:COLORS.primary,borderRadius:10},
- row:{flexDirection:'row',gap:10},rowBetween:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},metric:{flex:1,padding:13},metricValue:{fontSize:23,fontWeight:'800',marginTop:7},unit:{fontSize:11,color:COLORS.muted,fontWeight:'600'},primaryText:{color:COLORS.primary,fontWeight:'800',fontSize:13},
- meal:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},cardTitle:{fontSize:14,fontWeight:'700',color:COLORS.text,marginVertical:4},
- wrap:{flexDirection:'row',flexWrap:'wrap',gap:8,marginVertical:10},choice:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,padding:13,minWidth:'29%',alignItems:'center'},choiceActive:{borderColor:COLORS.primary,backgroundColor:'#102b48'},choiceText:{color:COLORS.text,fontWeight:'700',fontSize:13},
+ calorieRow:{flexDirection:'row',alignItems:'baseline',marginTop:8,marginBottom:12},bigNumber:{fontSize:36,fontFamily:'PlusJakartaSans_800ExtraBold',color:COLORS.text},progress:{height:8,backgroundColor:COLORS.border,borderRadius:10,overflow:'hidden',marginVertical:10},progressFill:{height:'100%',backgroundColor:COLORS.primary,borderRadius:10},
+ row:{flexDirection:'row',gap:10},rowBetween:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},metric:{flex:1,padding:13},metricValue:{fontSize:23,fontFamily:'PlusJakartaSans_800ExtraBold',marginTop:7},unit:{fontSize:11,color:COLORS.muted,fontFamily:'PlusJakartaSans_600SemiBold'},primaryText:{color:COLORS.primary,fontFamily:'PlusJakartaSans_800ExtraBold',fontSize:13},
+ meal:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},cardTitle:{fontSize:14,fontFamily:'PlusJakartaSans_700Bold',color:COLORS.text,marginVertical:4},
+ wrap:{flexDirection:'row',flexWrap:'wrap',gap:8,marginVertical:10},choice:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:12,padding:13,minWidth:'29%',alignItems:'center'},choiceActive:{borderColor:COLORS.primary,backgroundColor:'#102b48'},choiceText:{color:COLORS.text,fontFamily:'PlusJakartaSans_700Bold',fontSize:13},
  waterBtn:{paddingVertical:9,paddingHorizontal:12,borderRadius:10,backgroundColor:COLORS.surface2,borderWidth:1,borderColor:COLORS.border},
- chip:{paddingVertical:9,paddingHorizontal:13,borderRadius:20,backgroundColor:COLORS.surface2,borderWidth:1,borderColor:COLORS.border,marginRight:7},chipActive:{backgroundColor:'#12415b',borderColor:COLORS.primary},chipText:{color:COLORS.text,fontSize:12,fontWeight:'700'},
+ chip:{paddingVertical:9,paddingHorizontal:13,borderRadius:20,backgroundColor:COLORS.surface2,borderWidth:1,borderColor:COLORS.border,marginRight:7},chipActive:{backgroundColor:'#12415b',borderColor:COLORS.primary},chipText:{color:COLORS.text,fontSize:12,fontFamily:'PlusJakartaSans_700Bold'},
  recipe:{padding:14},recipeArt:{height:100,borderRadius:12,backgroundColor:'#1d3150',alignItems:'center',justifyContent:'center',marginBottom:10},
  bottomNav:{height:66,backgroundColor:COLORS.surface,borderTopWidth:1,borderTopColor:COLORS.border,flexDirection:'row',justifyContent:'space-around',alignItems:'center',paddingBottom:5},
- navItem:{alignItems:'center',justifyContent:'center',flex:1},navIcon:{fontSize:19,color:COLORS.muted},navLabel:{fontSize:10,color:COLORS.muted,marginTop:3,fontWeight:'700'},
+ navItem:{alignItems:'center',justifyContent:'center',flex:1},navIcon:{fontFamily:'PlusJakartaSans_400Regular',fontSize:19,color:COLORS.muted},navLabel:{fontSize:10,color:COLORS.muted,marginTop:3,fontFamily:'PlusJakartaSans_700Bold'},
  barChart:{height:145,flexDirection:'row',alignItems:'flex-end',justifyContent:'space-around',marginTop:20},barCol:{alignItems:'center',justifyContent:'flex-end',height:'100%',gap:8},bar:{width:20,backgroundColor:COLORS.primary,borderRadius:6,minHeight:10},macroLine:{flexDirection:'row',justifyContent:'space-between',marginTop:12},
  overlay:{position:'absolute',top:0,bottom:0,left:0,right:0,backgroundColor:'rgba(0,0,0,.72)',justifyContent:'center',padding:20},modal:{padding:20},
 });
