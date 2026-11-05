@@ -1,17 +1,17 @@
-import { StatusBar } from 'expo-status-bar';
-import * as ImagePicker from 'expo-image-picker';
 import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
+import * as ImagePicker from 'expo-image-picker';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { T, Row, Icon, Avatar, CTA, AppHeader, BottomNav, Scroll, Card, C } from './src/components/kit';
-import SplashScreen from './src/screens/SplashScreen';
-import Login from './src/screens/Login';
-import { SignUp1, SignUp2 } from './src/screens/SignUp';
-import Dashboard from './src/screens/Dashboard';
-import Recipes from './src/screens/Recipes';
+import { AppHeader, Avatar, BottomNav, C, Card, CTA, Icon, Row, Scroll, T } from './src/components/kit';
 import Analytics from './src/screens/Analytics';
-import { QuickAdd, Overdraft, GoalHit } from './src/screens/Dialogs';
+import Dashboard from './src/screens/Dashboard';
+import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
+import Login from './src/screens/Login';
+import Recipes from './src/screens/Recipes';
+import { SignUp1, SignUp2 } from './src/screens/SignUp';
+import SplashScreen from './src/screens/SplashScreen';
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
