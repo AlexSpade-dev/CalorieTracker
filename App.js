@@ -46,7 +46,7 @@ function Toast({ toast, onClose }) {
   );
 }
 
-function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut }) {
+function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut, onPreviewOverdraft, onPreviewGoal }) {
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: C.bg }}><AppHeader /></SafeAreaView>
@@ -60,6 +60,11 @@ function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignO
         </View>
         <Card style={{ padding: 16, marginBottom: 16 }}>
           <Row style={{ justifyContent: 'space-between' }}><T s={13} c={C.onSurfaceVariant}>Daily calorie goal</T><T w="bold" s={14} c={C.primary}>{goal.toLocaleString('en-US')} kcal</T></Row>
+        </Card>
+        <Card style={{ padding: 16, marginBottom: 16 }}>
+          <T w="bold" s={13} style={{ marginBottom: 10 }}>Preview dialogs</T>
+          <CTA tone="ghost" title="Calorie Overdraft" icon="warning" onPress={onPreviewOverdraft} style={{ marginBottom: 10 }} />
+          <CTA tone="ghost" title="Daily Goal Hit" icon="military_tech" onPress={onPreviewGoal} />
         </Card>
         <CTA tone="ghost" title="Sign Out" icon="logout" onPress={onSignOut} />
       </Scroll>
@@ -84,6 +89,7 @@ export default function App() {
   const [quick, setQuick] = useState(false);
   const [pending, setPending] = useState(null);
   const [goalHit, setGoalHit] = useState(false);
+  const [goalDemo, setGoalDemo] = useState(false);
   const goalShown = useRef(false);
   const timer = useRef(null);
 
@@ -199,10 +205,15 @@ export default function App() {
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
         {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
-        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={() => setScreen('login')} />}
+        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={() => setScreen('login')}
+          onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
+          onPreviewGoal={() => { setGoalDemo(true); setGoalHit(true); }} />}
         <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />
         <Overdraft visible={!!pending} pending={pending} consumed={consumed} goal={goal} onConfirm={settle} onAdjust={adjust} onCancel={() => setPending(null)} />
-        <GoalHit visible={goalHit} consumed={consumed} goal={goal} onDone={() => { setGoalHit(false); say('Check-in saved', 'Nice work hitting your goal today.'); }} onReview={() => { setGoalHit(false); setTab('Log'); }} />
+        <GoalHit visible={goalHit} consumed={goalDemo ? Math.round(goal * 0.98) : consumed} goal={goal}
+          streak={goalDemo ? Math.max(streak, 1) : streak} activeDays={goalDemo ? [...activeDays, dayKey()] : activeDays}
+          onDone={() => { setGoalHit(false); setGoalDemo(false); say('Check-in saved', 'Nice work hitting your goal today.'); }}
+          onReview={() => { setGoalHit(false); setGoalDemo(false); setTab('Log'); }} />
       </View>
     );
   }

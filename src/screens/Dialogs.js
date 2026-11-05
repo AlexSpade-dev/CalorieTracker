@@ -201,11 +201,18 @@ export function Overdraft({ visible, pending, consumed, goal, onConfirm, onAdjus
 
 /* ===================== Goal hit ===================== */
 const FEEL = [['Energized', '⚡'], ['Balanced', '🥑'], ['Hungry', '💧'], ['Heavy', '🛋️']];
-export function GoalHit({ visible, consumed, goal, onDone, onReview }) {
+export function GoalHit({ visible, consumed, goal, streak = 0, activeDays = [], onDone, onReview }) {
   const [feel, setFeel] = useState('Energized');
   const [note, setNote] = useState('');
   const acc = Math.max(0, Math.round(100 - (Math.abs(consumed - goal) / goal) * 100));
   const week = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  // which days of this week (Mon-Sun) had a logged meal, and the week number, from real data
+  const now = new Date();
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const done = week.map((_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return activeDays.includes(key(d)); });
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const wk = Math.ceil((((now - jan1) / 86400000) + jan1.getDay() + 1) / 7);
   return (
     <Frame visible={visible} title="Goal Feedback Modal" onBack={() => onDone(feel, note)}>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 30 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -226,15 +233,15 @@ export function GoalHit({ visible, consumed, goal, onDone, onReview }) {
 
           <View style={{ padding: 14, borderRadius: 18, backgroundColor: C.bg, borderWidth: 1, borderColor: border }}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <Row><Icon n="local_fire_department" s={17} c={C.primary} /><T w="bold" s={14} style={{ marginLeft: 6 }}>5-Day Perfect Streak</T></Row>
-              <Pill><T w="bold" s={10} c={C.primary}>Week 42</T></Pill>
+              <Row><Icon n="local_fire_department" s={17} c={C.primary} /><T w="bold" s={14} style={{ marginLeft: 6 }}>{streak}-Day Streak</T></Row>
+              <Pill><T w="bold" s={10} c={C.primary}>Week {wk}</T></Pill>
             </Row>
             <Row style={{ justifyContent: 'space-between', marginTop: 12 }}>
               {week.map((d, i) => (
                 <View key={i} style={{ alignItems: 'center' }}>
-                  <T w="bold" s={10} c={i < 5 ? C.primary : C.outline}>{d}</T>
-                  <View style={{ width: 30, height: 30, borderRadius: 15, marginTop: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: i < 5 ? C.primary : 'rgba(62,72,79,0.35)' }}>
-                    <Icon n={i < 5 ? 'check' : 'remove'} s={16} c={i < 5 ? C.onPrimaryContainer : C.outline} />
+                  <T w="bold" s={10} c={done[i] ? C.primary : C.outline}>{d}</T>
+                  <View style={{ width: 30, height: 30, borderRadius: 15, marginTop: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: done[i] ? C.primary : 'rgba(62,72,79,0.35)' }}>
+                    <Icon n={done[i] ? 'check' : 'remove'} s={16} c={done[i] ? C.onPrimaryContainer : C.outline} />
                   </View>
                 </View>
               ))}
