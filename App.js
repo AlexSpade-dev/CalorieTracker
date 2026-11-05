@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { AppHeader, Avatar, BottomNav, C, Card, CTA, Icon, Row, Scroll, T } from './src/components/kit';
+import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
+import { playNotify } from './src/lib/sounds';
 import Analytics from './src/screens/Analytics';
 import Dashboard from './src/screens/Dashboard';
 import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
@@ -20,6 +21,17 @@ const DEMO_MEALS = [
   { id: 2, meal: 'Lunch', name: 'Grilled Salmon Bowl & Quinoa', kcal: 680, carbs: 75, protein: 55, fats: 20 },
   { id: 3, meal: 'Snack', name: 'Greek Yogurt & Almonds', kcal: 350, carbs: 30, protein: 30, fats: 15 },
 ];
+
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// streak = consecutive days (ending today, or yesterday) with at least one logged meal
+const calcStreak = (days) => {
+  const set = new Set(days);
+  const d = new Date();
+  if (!set.has(dayKey(d))) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (set.has(dayKey(d))) { n += 1; d.setDate(d.getDate() - 1); }
+  return n;
+};
 
 function Toast({ toast, onClose }) {
   if (!toast) return null;
@@ -67,6 +79,8 @@ export default function App() {
   const [water, setWater] = useState(1800);
   const [toast, setToast] = useState(null);
   const [photo, setPhoto] = useState(null);
+  const [activeDays, setActiveDays] = useState([]); // days on which a meal was logged
+  const [seen, setSeen] = useState([]); // notification ids already opened
   const [quick, setQuick] = useState(false);
   const [pending, setPending] = useState(null);
   const [goalHit, setGoalHit] = useState(false);
@@ -75,9 +89,27 @@ export default function App() {
 
   const goal = user.goal || 2200;
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
-  const proteinLeft = (goal * 0.3) / 4 - meals.reduce((n, m) => n + (m.protein || 0), 0);
+  const split = user.profile?.macros || { c: 40, p: 30, f: 30 };
+  const proteinLeft = (goal * split.p) / 400 - meals.reduce((n, m) => n + (m.protein || 0), 0);
+
+  const streak = calcStreak(activeDays);
+  const notifs = [
+    streak > 0
+      ? { id: `streak-${streak}`, icon: 'local_fire_department', title: `${streak}-day streak`, body: 'Great job! Log a meal tomorrow to keep it going.' }
+      : { id: 'streak-0', icon: 'local_fire_department', title: 'Start your streak', body: 'Log a meal today to begin your daily streak.' },
+    ...(meals.length === 0 ? [{ id: 'first-meal', icon: 'restaurant', title: 'No meals logged yet', body: 'Use Quick Add or browse Recipes to log your first meal.' }] : []),
+    ...(water < 1000 ? [{ id: 'water-low', icon: 'water_drop', title: 'Stay hydrated', body: `You've logged ${(water / 1000).toFixed(1)}L of 2.5L today.` }] : []),
+    ...(consumed > goal ? [{ id: 'over-goal', icon: 'warning', tone: 'warn', title: 'Over your target', body: `You're ${Math.round(consumed - goal).toLocaleString('en-US')} kcal above today's goal.` }] : []),
+    { id: 'photo', icon: 'person', title: 'Make it yours', body: 'Open Profile to add a profile photo.' },
+  ];
+  const unread = notifs.filter((n) => !seen.includes(n.id)).length;
+  // chime whenever a new notification lands on the bell
+  const prevUnread = useRef(unread);
+  useEffect(() => { if (screen === 'app' && unread > prevUnread.current) playNotify(); prevUnread.current = unread; }, [unread, screen]);
+  const headerCtx = { streak, notifs, unread, onOpenNotifs: () => setSeen(notifs.map((n) => n.id)) };
 
   const say = (title, body) => {
+    playNotify();
     setToast({ title, body });
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(null), 2600);
@@ -94,24 +126,41 @@ export default function App() {
     const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === pw);
     if (!u) return false;
     setUser(u); setPhoto(null);
-    setMeals(u === DEMO ? DEMO_MEALS : []);
-    setWater(u === DEMO ? 1800 : 0);
+    setMeals([]);
+    setWater(0);
+    setActiveDays([]);
+    setSeen([]);
     goalShown.current = false;
     setTab('Log');
     setScreen('app');
     return true;
   };
+  const socialLogin = (provider, mail, fullName, avatar) => {
+    const email = mail.trim().toLowerCase();
+    let u = users.find((x) => x.email.toLowerCase() === email);
+    if (!u) {
+      const nm = (fullName || email.split('@')[0]).replace(/[._-]+/g, ' ');
+      u = { name: nm.split(' ')[0].charAt(0).toUpperCase() + nm.split(' ')[0].slice(1), email, password: '', goal: 2200, provider };
+      setUsers((x) => [...x, u]);
+    }
+    setUser(u); setPhoto(avatar || null); setMeals([]); setWater(0); setActiveDays([]); setSeen([]); goalShown.current = false; setTab('Log'); setScreen('app');
+  };
   const register = (d1, d2) => {
     const u = { name: (d1.name || 'Friend').trim().split(' ')[0], email: d1.email || 'you@example.com', password: d1.password || '', goal: d1.goal || 2200, profile: d2 };
     setUsers((x) => [...x, u]);
-    setUser(u); setPhoto(null); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
+    setUser(u); setPhoto(null); setActiveDays([]); setSeen([]); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
   };
 
   // ----- logging -----
   const commit = (m, msg) => {
     const total = consumed + m.kcal;
     setMeals((x) => [...x, { id: Date.now() + Math.random(), ...m }]);
-    say(msg ? msg[0] : 'Action confirmed', msg ? msg[1] : 'Update saved successfully.');
+    const key = dayKey();
+    const isNewDay = !activeDays.includes(key);
+    const nextDays = isNewDay ? [...activeDays, key] : activeDays;
+    if (isNewDay) setActiveDays(nextDays);
+    const extra = isNewDay ? ` 🔥 ${calcStreak(nextDays)}-day streak!` : '';
+    say(msg ? msg[0] : 'Action confirmed', (msg ? msg[1] : 'Update saved successfully.') + extra);
     if (!goalShown.current && total >= goal * 0.95 && total <= goal) {
       goalShown.current = true;
       setTimeout(() => setGoalHit(true), 500);
@@ -138,18 +187,18 @@ export default function App() {
 
   let body;
   if (screen === 'welcome') body = <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
-  else if (screen === 'login') body = <Login onLogin={login} onSignUp={() => setScreen('signup1')} />;
+  else if (screen === 'login') body = <Login onLogin={login} onSocial={socialLogin} onSignUp={() => setScreen('signup1')} />;
   else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup2'); }} />;
   else if (screen === 'signup2') body = <SignUp2 draft={draft.step2} onBack={() => setScreen('signup1')} onComplete={(d2) => register(draft, d2)} onSkip={() => register(draft, {})} />;
   else {
     const common = { tab, onTab: setTab };
     body = (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-        {tab === 'Log' && <Dashboard {...common} name={user.name} goal={goal} meals={meals} water={water}
+        {tab === 'Log' && <Dashboard {...common} split={split} name={user.name} goal={goal} meals={meals} water={water}
           onAddWater={(ml) => { setWater((w) => w + ml); say('Action confirmed', 'Update saved successfully.'); }}
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
-        {tab === 'Analytics' && <Analytics {...common} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
+        {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
         {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={() => setScreen('login')} />}
         <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />
         <Overdraft visible={!!pending} pending={pending} consumed={consumed} goal={goal} onConfirm={settle} onAdjust={adjust} onCancel={() => setPending(null)} />
@@ -161,7 +210,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {body}
+      <HeaderCtx.Provider value={headerCtx}>{body}</HeaderCtx.Provider>
       <Toast toast={toast} onClose={() => setToast(null)} />
     </SafeAreaProvider>
   );

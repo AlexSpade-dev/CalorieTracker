@@ -1,25 +1,37 @@
-import React, { useState } from 'react';
-import { View, Pressable, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { Backdrop, T, Row, Icon, CTA, Pill, Sheet, IconBox, C } from '../components/kit';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
-import { IMG } from '../data/images';
+import { Backdrop, C, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
+import { signInWithProvider } from '../lib/socialAuth';
 
 const AREAS = ['Nutrition Logging', 'Recipe Sync', 'Analytics', 'General Bug', 'UI Design'];
 const RATING = ['', 'Poor', 'Fair', 'Good', 'Great', 'Radiant'];
 const border = 'rgba(62,72,79,0.55)';
 
-export default function Login({ onLogin, onSignUp }) {
+export default function Login({ onLogin, onSignUp, onSocial }) {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState(false);
-  const [dlg, setDlg] = useState(null); // 'apple' | 'google' | 'forgot' | 'feedback'
+  const [dlg, setDlg] = useState(null); // 'forgot' | 'feedback'
+  const [busy, setBusy] = useState(null); // 'google' | 'apple' while the provider page is open
+  const [socialErr, setSocialErr] = useState('');
 
   const submit = () => { const ok = onLogin(email.trim(), pw); setErr(!ok); };
-  const social = () => { setDlg(null); onLogin('alex@example.com', '1412'); };
+  // Opens Google's account chooser / Apple's sign-in via Supabase, then logs in with the verified account
+  const social = async (provider) => {
+    if (busy) return;
+    setSocialErr(''); setBusy(provider);
+    try {
+      const u = await signInWithProvider(provider);
+      if (u) onSocial && onSocial(provider, u.email, u.name, u.avatar);
+    } catch (e) {
+      setSocialErr(e?.message || 'Sign-in failed. Please try again.');
+    } finally { setBusy(null); }
+  };
 
   return (
     <Backdrop>
@@ -73,11 +85,12 @@ export default function Login({ onLogin, onSignUp }) {
               </Row>
               <Row style={{ gap: 12 }}>
                 {[['google', 'Google', '#8ab4f8'], ['apple', 'Apple', C.text]].map(([ic, label, col]) => (
-                  <Pressable key={label} onPress={() => setDlg(ic)} style={({ pressed }) => ({ flex: 1, height: 46, borderRadius: 12, borderWidth: 1, borderColor: border, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', opacity: pressed ? 0.8 : 1 })}>
-                    <FontAwesome name={ic} size={17} color={col} /><T w="semibold" s={14} style={{ marginLeft: 8 }}>{label}</T>
+                  <Pressable key={label} onPress={() => social(ic)} disabled={!!busy} style={({ pressed }) => ({ flex: 1, height: 46, borderRadius: 12, borderWidth: 1, borderColor: border, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', opacity: pressed || (busy && busy !== ic) ? 0.6 : 1 })}>
+                    <FontAwesome name={ic} size={17} color={col} /><T w="semibold" s={14} style={{ marginLeft: 8 }}>{busy === ic ? 'Opening…' : label}</T>
                   </Pressable>
                 ))}
               </Row>
+              {socialErr ? <T s={11} c={C.error} style={{ marginTop: 10, textAlign: 'center' }}>{socialErr}</T> : null}
               <Row style={{ justifyContent: 'center', marginTop: 28 }}>
                 <T s={13} c={C.onSurfaceVariant}>Don't have an account? </T>
                 <Pressable onPress={onSignUp} hitSlop={8}><T w="bold" s={13} c={C.primary}>Sign Up</T></Pressable>
@@ -87,81 +100,9 @@ export default function Login({ onLogin, onSignUp }) {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      <AppleSheet visible={dlg === 'apple'} onClose={() => setDlg(null)} onContinue={social} />
-      <GoogleSheet visible={dlg === 'google'} onClose={() => setDlg(null)} onPick={social} />
       <ForgotSheet visible={dlg === 'forgot'} onClose={() => setDlg(null)} initial={email} />
       <FeedbackSheet visible={dlg === 'feedback'} onClose={() => setDlg(null)} />
     </Backdrop>
-  );
-}
-
-/* ---------------- Apple ---------------- */
-function AppleSheet({ visible, onClose, onContinue }) {
-  const [hide, setHide] = useState(true);
-  const Opt = ({ on, label, sub, badge, onPress }) => (
-    <Pressable onPress={onPress} style={{ padding: 12, borderRadius: 12, borderWidth: 1, borderColor: on ? 'rgba(10,132,255,0.6)' : 'rgba(255,255,255,0.1)', backgroundColor: on ? 'rgba(10,132,255,0.1)' : 'rgba(255,255,255,0.04)', marginTop: 8 }}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <View style={{ flex: 1 }}>
-          <Row><T w="semibold" s={13} c="#fff">{label}</T>{badge && <View style={{ marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(10,132,255,0.3)' }}><T w="bold" s={9} c="#8ec5ff">{badge}</T></View>}</Row>
-          {sub ? <T s={11} c="#9aa0a6" style={{ marginTop: 2 }}>{sub}</T> : null}
-        </View>
-        <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? '#0a84ff' : '#48484a', backgroundColor: on ? '#0a84ff' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{on && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' }} />}</View>
-      </Row>
-    </Pressable>
-  );
-  return (
-    <Sheet visible={visible} onClose={onClose} style={{ backgroundColor: '#1c1c1e', borderColor: 'rgba(255,255,255,0.12)' }}>
-      <View style={{ alignItems: 'center' }}>
-        <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><FontAwesome name="apple" size={26} color="#000" /></View>
-        <T w="bold" s={17} c="#fff" style={{ marginTop: 10 }}>Sign in with Apple</T>
-        <T s={12} c="#9aa0a6" style={{ marginTop: 3, textAlign: 'center' }}>Use your Apple ID to sign in to <T w="semibold" s={12} c="#8ec5ff">CalorieTracker+</T></T>
-      </View>
-      <View style={{ marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <View><T s={10} c="#9aa0a6">Apple ID</T><Row><T w="bold" s={13} c="#fff">alex@example.com </T><Icon n="check_circle" s={13} c="#30d158" /></Row></View>
-          <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.1)' }}><T w="bold" s={9} c="#d0d0d0">FACE ID</T></View>
-        </Row>
-        <Row style={{ justifyContent: 'space-between', marginTop: 10 }}><T s={12} c="#9aa0a6">Name</T><T w="bold" s={13} c="#fff">Alex Rivera</T></Row>
-      </View>
-      <Opt on={!hide} label="Share My Email" sub="alex@example.com" onPress={() => setHide(false)} />
-      <Opt on={hide} label="Hide My Email" badge="Private Relay" sub="alx_89f2k5@privaterelay.appleid.com" onPress={() => setHide(true)} />
-      <Row style={{ marginTop: 12, justifyContent: 'center' }}><Icon n="fingerprint" s={14} c="#0a84ff" /><T s={11} c="#9aa0a6" style={{ marginLeft: 6 }}>Double-click Side Button or tap Continue for Face ID</T></Row>
-      <Pressable onPress={onContinue} style={{ height: 48, borderRadius: 999, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 14 }}>
-        <Icon n="fingerprint" s={18} c="#000" /><T w="bold" s={14} c="#000" style={{ marginLeft: 8 }}>Continue with Password / Face ID</T>
-      </Pressable>
-      <Pressable onPress={onClose} style={{ alignItems: 'center', paddingTop: 14 }}><T w="semibold" s={13} c="#9aa0a6">Cancel</T></Pressable>
-    </Sheet>
-  );
-}
-
-/* ---------------- Google ---------------- */
-function GoogleSheet({ visible, onClose, onPick }) {
-  const acct = (name, mail, avatar, initial) => (
-    <Pressable onPress={onPick} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, backgroundColor: pressed ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)', marginTop: 8 })}>
-      {avatar ? <Image source={{ uri: avatar }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-        : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#3c4a73', alignItems: 'center', justifyContent: 'center' }}><T w="bold" s={14} c="#fff">{initial}</T></View>}
-      <View style={{ flex: 1, marginLeft: 12 }}><T w="semibold" s={13} c="#fff">{name}</T><T s={11} c="#9aa0a6">{mail}</T></View>
-      <Icon n="chevron_right" s={20} c="#9aa0a6" />
-    </Pressable>
-  );
-  return (
-    <Sheet visible={visible} onClose={onClose} style={{ backgroundColor: '#202124', borderColor: 'rgba(255,255,255,0.1)' }}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Row><FontAwesome name="google" size={16} color="#8ab4f8" /><T w="semibold" s={14} c="#fff" style={{ marginLeft: 8 }}>Sign in with Google</T></Row>
-        <Pressable onPress={onClose} hitSlop={10}><Icon n="close" s={20} c="#9aa0a6" /></Pressable>
-      </Row>
-      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 14 }} />
-      <T w="bold" s={20} c="#fff">Choose an account</T>
-      <T s={12} c="#9aa0a6" style={{ marginTop: 4 }}>to continue to <T w="semibold" s={12} c="#8ab4f8">CalorieTracker+ Precision Health</T></T>
-      {acct('Alex Rivera', 'alex@example.com', IMG.googleAvatar)}
-      {acct('Morgan Vance', 'morgan.vance@calorietracker.fit', null, 'M')}
-      <Row style={{ padding: 12, marginTop: 8 }}>
-        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' }}><Icon n="person_add" s={18} c="#c4c7c5" /></View>
-        <T w="semibold" s={13} c="#fff" style={{ marginLeft: 12 }}>Use another account</T>
-      </Row>
-      <T s={10} c="#9aa0a6" style={{ lineHeight: 15, marginTop: 6 }}>To continue, Google will share your name, email address, language preference, and profile picture with CalorieTracker+. Before using this app, review CalorieTracker+'s <T s={10} c="#8ab4f8">Privacy Policy</T> and <T s={10} c="#8ab4f8">Terms of Service</T>.</T>
-      <Pressable onPress={onClose} style={{ height: 44, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', marginTop: 16 }}><T w="semibold" s={13} c="#e8eaed">Cancel</T></Pressable>
-    </Sheet>
   );
 }
 

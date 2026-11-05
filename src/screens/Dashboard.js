@@ -15,12 +15,12 @@ const Panel = ({ children, style }) => (
   </View>
 );
 
-export default function Dashboard({ name, goal, meals, water, waterGoal = 2500, tab, onTab, onAddWater, onLogMeal, onQuickAdd, toast }) {
+export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal, meals, water, waterGoal = 2500, tab, onTab, onAddWater, onLogMeal, onQuickAdd, toast }) {
   const [dlg, setDlg] = useState(null);
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
   const left = Math.max(0, goal - consumed);
   const sum = (k) => meals.reduce((n, m) => n + (m[k] || 0), 0);
-  const macros = [['Carbs', sum('carbs'), Math.round((goal * 0.4) / 4)], ['Protein', sum('protein'), Math.round((goal * 0.3) / 4)], ['Fats', sum('fats'), Math.round((goal * 0.3) / 9)]];
+  const macros = [['Carbs', sum('carbs'), Math.round((goal * split.c) / 400)], ['Protein', sum('protein'), Math.round((goal * split.p) / 400)], ['Fats', sum('fats'), Math.round((goal * split.f) / 900)]];
   const slots = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
   const logged = slots.filter((s) => meals.some((m) => m.meal === s));
   const hour = new Date().getHours();
@@ -192,13 +192,13 @@ function MealDialog({ visible, slot = 'Dinner', left, onClose, onConfirm }) {
         ))}
       </Row>
       <Field label="Meal Name" value={n} onChangeText={setN} style={{ marginBottom: 10, marginTop: 4 }} />
-      <Field label="Total Calories" value={k} onChangeText={num(setK)} keyboardType="numeric" right={<T s={12} c={C.outline}>kcal</T>} style={{ marginBottom: 10 }} />
+      <Field label="Total Calories" value={k} onChangeText={num(setK)} keyboardType="numeric" maxLength={5} right={<T s={12} c={C.outline}>kcal</T>} style={{ marginBottom: 10 }} />
       <T w="semibold" s={12} style={{ marginBottom: 6 }}>Estimated Macro Breakdown</T>
       <Row style={{ gap: 8 }}>
         {[['Carbs', c, setC], ['Protein', p, setP], ['Fats', f, setF]].map(([l, v, s]) => (
           <View key={l} style={{ flex: 1 }}>
             <T w="bold" s={9} c={C.outline} style={{ letterSpacing: 0.8, marginBottom: 4 }}>{l.toUpperCase()}</T>
-            <Field value={v} onChangeText={num(s)} keyboardType="numeric" right={<T s={11} c={C.outline}>g</T>} style={{ marginBottom: 0 }} />
+            <Field value={v} onChangeText={num(s)} keyboardType="numeric" maxLength={4} right={<T s={11} c={C.outline}>g</T>} style={{ marginBottom: 0 }} />
           </View>
         ))}
       </Row>

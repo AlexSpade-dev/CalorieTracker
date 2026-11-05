@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Pressable, Modal, Image, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Glow, T, Row, Icon, Pill, Bar, Ring, IconBox, CTA, C } from '../components/kit';
 import { Field } from '../components/Field';
+import { Bar, C, CTA, Glow, Icon, IconBox, Pill, Ring, Row, T } from '../components/kit';
 import { IMG } from '../data/images';
 
 const border = 'rgba(62,72,79,0.5)';
@@ -101,12 +101,21 @@ export function QuickAdd({ visible, onClose, onAdd, consumed, goal }) {
               <T w="bold" s={10} c={C.outline} style={{ letterSpacing: 1 }}>ENERGY MEASURE</T>
               <Row><Icon n="bolt" s={13} c={C.primary} /><T w="bold" s={10} c={C.primary}> {goal ? Math.round((k / goal) * 100) : 0}% of Daily Budget</T></Row>
             </Row>
-            <Row style={{ marginTop: 12, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 16, backgroundColor: '#0b0d2b', borderWidth: 1, borderColor: 'rgba(121,209,255,0.25)' }}>
+            <Row style={{ marginTop: 12, alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, backgroundColor: '#0b0d2b', borderWidth: 1, borderColor: 'rgba(121,209,255,0.25)' }}>
               <Icon n="edit" s={16} c={C.primary} />
-              <Field value={kcal} onChangeText={(v) => setKcal(v.replace(/[^0-9]/g, ''))} keyboardType="numeric" style={{ marginBottom: 0, marginHorizontal: 6, minWidth: 90 }} inputStyle={{ fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 34, textAlign: 'center' }} />
+              <TextInput
+                value={kcal}
+                onChangeText={(v) => setKcal(v.replace(/[^0-9]/g, '').slice(0, 5))}
+                keyboardType="numeric"
+                maxLength={5}
+                selectTextOnFocus
+                placeholder="0"
+                placeholderTextColor="rgba(136,146,154,0.5)"
+                style={{ flexShrink: 1, minWidth: 60, marginHorizontal: 10, paddingVertical: 4, color: C.text, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: kcal.length <= 3 ? 40 : kcal.length === 4 ? 34 : 28, textAlign: 'center' }}
+              />
               <T w="bold" s={16} c={C.primary}>kcal</T>
             </Row>
-            <Row style={{ marginTop: 8 }}><Icon n="touch_app" s={13} c={C.outline} /><T s={11} c={C.outline}> Tap to type exact kcal</T></Row>
+            <Row style={{ marginTop: 8 }}><Icon n="touch_app" s={13} c={C.outline} /><T s={11} c={C.outline}> Tap to type exact kcal (max 99,999)</T></Row>
           </View>
 
           <Row style={{ justifyContent: 'space-between', marginTop: 18, marginBottom: 8 }}><T w="bold" s={10} c={C.outline} style={{ letterSpacing: 1 }}>MACRONUTRIENT SPLIT</T><T s={10} c={C.outline}>Auto-balanced</T></Row>

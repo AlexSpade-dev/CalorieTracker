@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Pressable, Image, ScrollView, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { T, Row, Icon, Pill, CTA, AppHeader, BottomNav, Scroll, C } from '../components/kit';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppHeader, BottomNav, C, CTA, Icon, Pill, Row, Scroll, Sheet, T } from '../components/kit';
 import { IMG } from '../data/images';
 
 const border = 'rgba(62,72,79,0.45)';
@@ -12,6 +12,7 @@ export const RECIPES = [
   { id: 'r3', name: 'Zesty Lime Chicken Quinoa', img: IMG.chicken, time: 18, kcal: 520, protein: 46, carbs: 48, fats: 14, tags: ['High Protein'], slot: 'Lunch', label: 'Lunch / Post-WOD' },
   { id: 'r4', name: 'Blueberry Chia Superfood Parfait', img: IMG.parfait, time: 5, kcal: 290, protein: 15, carbs: 32, fats: 9, tags: ['Low Calorie (<400)', 'Quick Prep (<15m)'], slot: 'Snack', label: 'Snack / Fast Fuel' },
 ];
+const SORTS = [['default', 'Featured first'], ['kcalAsc', 'Calories: low to high'], ['kcalDesc', 'Calories: high to low'], ['protein', 'Protein: most first'], ['time', 'Prep time: quickest']];
 const FILTERS = ['All', 'High Protein', 'Keto', 'Low Calorie (<400)', 'Quick Prep (<15m)', 'Vegan'];
 
 export default function Recipes({ tab, onTab, onAddRecipe, remaining, proteinLeft }) {
@@ -19,9 +20,13 @@ export default function Recipes({ tab, onTab, onAddRecipe, remaining, proteinLef
   const [f, setF] = useState('All');
   const [saved, setSaved] = useState({});
   const [liked, setLiked] = useState({});
-  const list = RECIPES.filter((r) => (f === 'All' || r.tags.includes(f)) && r.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const feat = list.find((r) => r.featured);
-  const rest = list.filter((r) => !r.featured);
+  const [sort, setSort] = useState('default');
+  const [sortOpen, setSortOpen] = useState(false);
+  const base = RECIPES.filter((r) => (f === 'All' || r.tags.includes(f)) && r.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const cmp = { kcalAsc: (a, b) => a.kcal - b.kcal, kcalDesc: (a, b) => b.kcal - a.kcal, protein: (a, b) => b.protein - a.protein, time: (a, b) => a.time - b.time }[sort];
+  const list = cmp ? [...base].sort(cmp) : base;
+  const feat = sort === 'default' ? list.find((r) => r.featured) : null;
+  const rest = feat ? list.filter((r) => !r.featured) : list;
   const add = (r) => onAddRecipe({ meal: r.slot, name: r.name, kcal: r.kcal, protein: r.protein, carbs: r.carbs, fats: r.fats });
 
   return (
@@ -33,7 +38,7 @@ export default function Recipes({ tab, onTab, onAddRecipe, remaining, proteinLef
             <T w="extrabold" s={28} style={{ letterSpacing: -0.6 }}>Recipe Browser</T>
             <T s={12} c={C.onSurfaceVariant} style={{ marginTop: 3 }}>Fuel your deficit with macro-aligned precision</T>
           </View>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}><Icon n="tune" s={18} c={C.primary} /></View>
+          <Pressable onPress={() => setSortOpen(true)} accessibilityLabel="Sort recipes" style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: sort === 'default' ? C.surface : 'rgba(121,209,255,0.16)', borderWidth: 1, borderColor: sort === 'default' ? border : C.primary, alignItems: 'center', justifyContent: 'center' }}><Icon n="tune" s={18} c={C.primary} /></Pressable>
         </Row>
 
         <Row style={{ marginTop: 16, paddingHorizontal: 12, height: 46, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: border }}>
@@ -89,7 +94,7 @@ export default function Recipes({ tab, onTab, onAddRecipe, remaining, proteinLef
         )}
 
         <Row style={{ justifyContent: 'space-between', marginTop: 24, marginBottom: 12 }}>
-          <T w="bold" s={19}>Curated Macros</T><T w="semibold" s={12} c={C.primary}>View All ({list.length === RECIPES.length ? 42 : list.length})</T>
+          <T w="bold" s={19}>Curated Macros</T><T w="semibold" s={12} c={C.primary}>{sort === 'default' ? `${list.length} recipes` : SORTS.find((x) => x[0] === sort)[1]}</T>
         </Row>
         {rest.map((r) => (
           <Row key={r.id} style={{ alignItems: 'flex-start', padding: 12, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: border, marginBottom: 12 }}>
@@ -122,6 +127,17 @@ export default function Recipes({ tab, onTab, onAddRecipe, remaining, proteinLef
           <Pill><T w="bold" s={10} c={C.primary}>In Range</T></Pill>
         </Row>
       </Scroll>
+      <Sheet visible={sortOpen} onClose={() => setSortOpen(false)}>
+        <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <T w="bold" s={20}>Sort recipes</T>
+          <Pressable onPress={() => setSortOpen(false)} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+        </Row>
+        {SORTS.map(([id, label]) => { const on = sort === id; return (
+          <Pressable key={id} onPress={() => { setSort(id); setSortOpen(false); }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: on ? C.primary : border, backgroundColor: on ? '#123a56' : C.bg }}>
+            <T w={on ? 'bold' : 'semibold'} s={14} c={on ? C.primary : C.text}>{label}</T>
+            {on && <Icon n="check" s={18} c={C.primary} />}
+          </Pressable>); })}
+      </Sheet>
       <BottomNav active={tab} onChange={onTab} />
     </View>
   );

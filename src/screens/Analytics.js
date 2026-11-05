@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, Path, Rect, LinearGradient as SG, Text as SText, Stop } from 'react-native-svg';
-import { AppHeader, Bar, BottomNav, C, Icon, Pill, Row, Scroll, T } from '../components/kit';
+import { AppHeader, Bar, BottomNav, C, CTA, Icon, Pill, Row, Scroll, Sheet, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.45)';
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -66,10 +66,11 @@ function Donut({ size = 128, segs, label, sub }) {
   );
 }
 
-export default function Analytics({ tab, onTab, meals = [], goal = 2200, water = 0, weight = null, targetWeight = null, baseBurn = 1820 }) {
+export default function Analytics({ split = { c: 40, p: 30, f: 30 }, tab, onTab, meals = [], goal = 2200, water = 0, weight = null, targetWeight = null, baseBurn = 1820 }) {
   const [range, setRange] = useState('Week');
   const [sel, setSel] = useState(todayIdx);
   const [w, setW] = useState(300);
+  const [report, setReport] = useState(false);
 
   const dates = weekDates();
   const RANGES = { Day: fmtDate(dates[todayIdx], { month: 'short', day: 'numeric' }), Week: `${fmtDate(dates[0], { month: 'short', day: 'numeric' })} - ${fmtDate(dates[6], { day: 'numeric' })}`, Month: fmtDate(new Date(), { month: 'long' }), Year: String(new Date().getFullYear()) };
@@ -87,13 +88,28 @@ export default function Analytics({ tab, onTab, meals = [], goal = 2200, water =
   const macroKcal = carbs * 4 + protein * 4 + fats * 9;
   const share = (kcal) => (macroKcal ? Math.round((kcal / macroKcal) * 100) : 0);
   const mac = [
-    ['Carbs', carbs, Math.round((goal * 0.4) / 4), share(carbs * 4), '#79d1ff'],
-    ['Protein', protein, Math.round((goal * 0.3) / 4), share(protein * 4), '#b6c4fd'],
-    ['Fats', fats, Math.round((goal * 0.3) / 9), share(fats * 9), '#8ccff2'],
+    ['Carbs', carbs, Math.round((goal * split.c) / 400), share(carbs * 4), '#79d1ff'],
+    ['Protein', protein, Math.round((goal * split.p) / 400), share(protein * 4), '#b6c4fd'],
+    ['Fats', fats, Math.round((goal * split.f) / 900), share(fats * 9), '#8ccff2'],
   ];
   const goalPct = goal ? Math.round((consumed / goal) * 100) : 0;
   const left = weight && targetWeight ? Math.abs(weight - targetWeight) : null;
   const lw = 150, lh = 58;
+
+  const rangeText = RANGES.Week;
+  const reportText = [
+    `CalorieTracker+ weekly report (${rangeText})`,
+    `Days logged: ${logged} of 7`,
+    `Calories today: ${fmt(consumed)} kcal (goal ${fmt(goal)} kcal)`,
+    `Average per logged day: ${fmt(avg)} kcal`,
+    `Macros: ${Math.round(carbs)}g carbs, ${Math.round(protein)}g protein, ${Math.round(fats)}g fats`,
+    `Water today: ${(water / 1000).toFixed(1)} L`,
+    weight ? `Weight: ${weight} kg${targetWeight ? ` (target ${targetWeight} kg)` : ''}` : '',
+  ].filter(Boolean).join('\n');
+  const csvText = ['date,meal,name,kcal,carbs_g,protein_g,fats_g']
+    .concat(meals.map((m) => [fmtDate(new Date(), { year: 'numeric', month: '2-digit', day: '2-digit' }), m.meal, `"${String(m.name).replace(/"/g, '""')}"`, m.kcal, Math.round(m.carbs || 0), Math.round(m.protein || 0), Math.round(m.fats || 0)].join(',')))
+    .join('\n');
+  const send = (message, title) => { Share.share({ message, title }).catch(() => {}); };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -187,12 +203,26 @@ export default function Analytics({ tab, onTab, meals = [], goal = 2200, water =
             </View>
           </Row>
         ))}
-        <Pressable style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 20, backgroundColor: C.primaryContainer, marginTop: 6, opacity: pressed ? 0.9 : 1 })}>
+        <Pressable onPress={() => setReport(true)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 20, backgroundColor: C.primaryContainer, marginTop: 6, opacity: pressed ? 0.9 : 1 })}>
           <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: 'rgba(0,45,64,0.25)', alignItems: 'center', justifyContent: 'center' }}><Icon n="ios_share" s={20} c={C.onPrimaryContainer} /></View>
-          <View style={{ flex: 1, marginLeft: 12 }}><T w="bold" s={15} c={C.onPrimaryContainer}>Export Weekly Report</T><T s={11} c={C.onPrimaryContainer} style={{ opacity: 0.8 }}>PDF Summary & CSV Nutrition Log</T></View>
+          <View style={{ flex: 1, marginLeft: 12 }}><T w="bold" s={15} c={C.onPrimaryContainer}>Export Weekly Report</T><T s={11} c={C.onPrimaryContainer} style={{ opacity: 0.8 }}>Summary & CSV Nutrition Log</T></View>
           <Icon n="chevron_right" s={22} c={C.onPrimaryContainer} />
         </Pressable>
       </Scroll>
+      <Sheet visible={report} onClose={() => setReport(false)}>
+        <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <View><T w="bold" s={20}>Weekly Report</T><T s={12} c={C.onSurfaceVariant}>{rangeText}</T></View>
+          <Pressable onPress={() => setReport(false)} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+        </Row>
+        <View style={{ padding: 14, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: border, marginBottom: 14 }}>
+          {[['Days logged', `${logged} / 7`], ['Calories today', `${fmt(consumed)} kcal`], ['Average / logged day', `${fmt(avg)} kcal`], ['Carbs / Protein / Fats', `${Math.round(carbs)}g / ${Math.round(protein)}g / ${Math.round(fats)}g`], ['Water today', `${(water / 1000).toFixed(1)} L`]].map(([k, v]) => (
+            <Row key={k} style={{ justifyContent: 'space-between', paddingVertical: 5 }}><T s={12} c={C.onSurfaceVariant}>{k}</T><T w="bold" s={12}>{v}</T></Row>
+          ))}
+        </View>
+        {logged === 0 && <T s={11} c={C.outline} style={{ marginBottom: 12 }}>No meals logged yet, so the report is empty. Log a meal first for real numbers.</T>}
+        <CTA title="Share Summary" icon="ios_share" onPress={() => send(reportText, 'CalorieTracker+ weekly report')} />
+        <CTA tone="ghost" title="Share Nutrition Log (CSV)" icon="table_chart" onPress={() => send(csvText, 'CalorieTracker+ nutrition log')} style={{ marginTop: 10 }} />
+      </Sheet>
       <BottomNav active={tab} onChange={onTab} />
     </View>
   );

@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import React, { useContext, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, LinearGradient as SG, Stop } from 'react-native-svg';
@@ -142,20 +143,46 @@ export function Choice({ on, onPress, children, style, radius = 14 }) {
   );
 }
 
+// shared header data (streak + notifications) provided by App.js
+export const HeaderCtx = React.createContext({ streak: 0, notifs: [], unread: 0, onOpenNotifs: () => {} });
+
 // app header used by Log / Analytics / Recipes
 export function AppHeader({ recipes }) {
+  const { streak, notifs, unread, onOpenNotifs } = useContext(HeaderCtx);
+  const [open, setOpen] = useState(false);
+  const show = () => { setOpen(true); onOpenNotifs && onOpenNotifs(); };
   return (
     <Row style={{ justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: 'rgba(62,72,79,0.35)', backgroundColor: C.bg }}>
+      <View>
+        <T w="bold" s={20} c={C.primary} style={{ letterSpacing: -0.4 }}>CalorieTracker+</T>
+        {!recipes && <Row><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary, marginRight: 5 }} /><T w="semibold" s={10} c={C.primary}>Sync Active</T></Row>}
+      </View>
       <Row>
-        <View>
-          <T w="bold" s={20} c={C.primary} style={{ letterSpacing: -0.4 }}>CalorieTracker+</T>
-          {!recipes && <Row><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary, marginRight: 5 }} /><T w="semibold" s={10} c={C.primary}>Sync Active</T></Row>}
-        </View>
+        {!recipes && (
+          <Pill style={{ marginRight: 12, backgroundColor: streak ? 'rgba(1,94,124,0.45)' : 'rgba(26,28,62,0.7)', borderColor: streak ? 'rgba(121,209,255,0.3)' : 'rgba(62,72,79,0.5)' }}>
+            <T w="bold" s={12} c={streak ? C.primary : C.outline}>🔥 {streak} {streak === 1 ? 'Day' : 'Days'}</T>
+          </Pill>
+        )}
+        <Pressable onPress={show} hitSlop={10} accessibilityLabel="Notifications">
+          <Icon n="notifications" s={24} c={C.text} />
+          {unread > 0 && <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 14, height: 14, borderRadius: 7, paddingHorizontal: 3, backgroundColor: C.error, alignItems: 'center', justifyContent: 'center' }}><T w="bold" s={9} c="#690005">{unread}</T></View>}
+        </Pressable>
       </Row>
-      <Row>
-        {!recipes && <Pill style={{ marginRight: 12, backgroundColor: 'rgba(1,94,124,0.45)', borderColor: 'rgba(121,209,255,0.3)' }}><T w="bold" s={12} c={C.primary}>🔥 14 Days</T></Pill>}
-        <Icon n="notifications" s={24} c={C.text} />
-      </Row>
+
+      <Sheet visible={open} onClose={() => setOpen(false)}>
+        <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+          <T w="bold" s={20}>Notifications</T>
+          <Pressable onPress={() => setOpen(false)} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+        </Row>
+        {notifs.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: 24 }}><Icon n="notifications_none" s={34} c={C.outline} /><T s={13} c={C.onSurfaceVariant} style={{ marginTop: 8 }}>You're all caught up.</T></View>
+        ) : notifs.map((n) => (
+          <Row key={n.id} style={{ alignItems: 'flex-start', padding: 12, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: 'rgba(62,72,79,0.45)', marginBottom: 8 }}>
+            <IconBox n={n.icon} size={34} s={18} r={17} c={n.tone === 'warn' ? C.error : C.primary} bg={n.tone === 'warn' ? 'rgba(255,180,171,0.12)' : 'rgba(121,209,255,0.1)'} />
+            <View style={{ flex: 1, marginLeft: 10 }}><T w="bold" s={13}>{n.title}</T><T s={11} c={C.onSurfaceVariant} style={{ marginTop: 2, lineHeight: 16 }}>{n.body}</T></View>
+          </Row>
+        ))}
+      </Sheet>
     </Row>
   );
 }

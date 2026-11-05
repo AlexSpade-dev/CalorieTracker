@@ -135,6 +135,67 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
   );
 }
 
+const PRESETS = [
+  ['Balanced', { c: 40, p: 30, f: 30 }],
+  ['High Protein', { c: 30, p: 40, f: 30 }],
+  ['Low Carb', { c: 20, p: 40, f: 40 }],
+  ['High Carb', { c: 55, p: 20, f: 25 }],
+];
+const MACRO_NAMES = { c: 'Carbs', p: 'Protein', f: 'Fats' };
+const MACRO_COLORS = { c: '#79d1ff', p: '#8ccff2', f: '#b6c4fd' };
+const same = (a, b) => a.c === b.c && a.p === b.p && a.f === b.f;
+const splitName = (m) => { const p = PRESETS.find((x) => same(x[1], m)); return `${p ? p[0] : 'Custom'} (${m.c}/${m.p}/${m.f})`; };
+
+// move 5% to/from one macro; the other two rebalance so the total stays 100
+function shift(m, k, delta) {
+  const o = ['c', 'p', 'f'].filter((x) => x !== k);
+  const nv = Math.max(10, Math.min(80, m[k] + delta));
+  let d = nv - m[k];
+  if (!d) return m;
+  const n = { ...m, [k]: nv };
+  if (d > 0) {
+    o.sort((a, b) => n[b] - n[a]);
+    for (const x of o) { const t = Math.min(d, n[x] - 10); n[x] -= t; d -= t; }
+    if (d > 0) return m;
+  } else {
+    o.sort((a, b) => n[a] - n[b]);
+    n[o[0]] += -d;
+  }
+  return n;
+}
+
+function MacroSheet({ visible, value, onChange, onClose }) {
+  return (
+    <Sheet visible={visible} onClose={onClose}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <View><T w="bold" s={20}>Macro Split Target</T><T s={12} c={C.onSurfaceVariant} style={{ marginTop: 2 }}>Choose how your calories are divided</T></View>
+        <Pressable onPress={onClose} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+      </Row>
+      <Row style={{ flexWrap: 'wrap', marginTop: 14 }}>
+        {PRESETS.map(([name, m]) => { const on = same(m, value); return (
+          <Pressable key={name} onPress={() => onChange(m)} style={{ paddingHorizontal: 12, height: 34, borderRadius: 999, borderWidth: 1, borderColor: on ? C.primary : border, backgroundColor: on ? C.primary : C.bg, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 8 }}>
+            <T w="bold" s={12} c={on ? C.onPrimaryContainer : C.onSurfaceVariant}>{name}</T>
+          </Pressable>); })}
+      </Row>
+      <Row style={{ height: 8, borderRadius: 4, overflow: 'hidden', marginVertical: 10 }}>
+        {['c', 'p', 'f'].map((k) => <View key={k} style={{ flex: value[k], height: 8, backgroundColor: MACRO_COLORS[k] }} />)}
+      </Row>
+      {['c', 'p', 'f'].map((k) => (
+        <Row key={k} style={{ justifyContent: 'space-between', padding: 12, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: border, marginTop: 8 }}>
+          <Row><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MACRO_COLORS[k], marginRight: 10 }} /><T w="semibold" s={14}>{MACRO_NAMES[k]}</T></Row>
+          <Row>
+            <Pressable onPress={() => onChange(shift(value, k, -5))} hitSlop={6} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: C.surface, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}><Icon n="remove" s={18} c={C.text} /></Pressable>
+            <T w="extrabold" s={18} style={{ width: 64, textAlign: 'center' }}>{value[k]}%</T>
+            <Pressable onPress={() => onChange(shift(value, k, 5))} hitSlop={6} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: C.surface, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}><Icon n="add" s={18} c={C.text} /></Pressable>
+          </Row>
+        </Row>
+      ))}
+      <T s={11} c={C.outline} style={{ marginTop: 10, marginBottom: 14 }}>Total always stays at 100%. Raising one macro lowers the others.</T>
+      <CTA title="Apply Split" icon={null} onPress={onClose} />
+    </Sheet>
+  );
+}
+
 const LEVELS = [
   { id: 'light', title: 'Light / Sedentary', mult: '1.2x BMR', desc: 'Desk job, little to no structured workout', icon: 'weekend' },
   { id: 'moderate', title: 'Moderately Active', mult: '1.55x BMR', desc: '3–5 training sessions / gym workouts per week', icon: 'fitness_center' },
@@ -142,9 +203,10 @@ const LEVELS = [
 ];
 
 export function SignUp2({ draft, onBack, onComplete, onSkip }) {
-  const [d, setD] = useState({ sex: 'Male', age: '', height: '', weight: '', target: '', level: 'moderate', ...draft });
+  const [d, setD] = useState({ sex: 'Male', age: '', height: '', weight: '', target: '', level: 'moderate', macros: { c: 40, p: 30, f: 30 }, ...draft });
   const [err, setErr] = useState({});
   const [miss, setMiss] = useState([]);
+  const [macroOpen, setMacroOpen] = useState(false);
   const set = (k, v) => { setD((x) => ({ ...x, [k]: v })); setErr((e) => ({ ...e, [k]: false })); };
   const num = (k) => (v) => set(k, v.replace(/[^0-9.]/g, ''));
 
@@ -206,20 +268,24 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
             <View style={{ padding: 14, borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: C.surface, marginTop: 2, marginBottom: 20 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Row><Icon n="pie_chart" s={16} c={C.primary} /><T w="semibold" s={12} style={{ marginLeft: 6 }}>Macro Split Target</T></Row>
-                <Row><T w="bold" s={10} c={C.primary}>Balanced (40/30/30) </T><Icon n="autorenew" s={13} c={C.primary} /></Row>
+                <Pressable onPress={() => setMacroOpen(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(121,209,255,0.1)', borderWidth: 1, borderColor: 'rgba(121,209,255,0.3)' }}>
+                  <T w="bold" s={10} c={C.primary}>{splitName(d.macros)} </T><Icon n="tune" s={13} c={C.primary} />
+                </Pressable>
               </Row>
               <Row style={{ height: 6, borderRadius: 3, overflow: 'hidden', marginVertical: 12 }}>
-                <View style={{ flex: 40, height: 6, backgroundColor: C.primary }} /><View style={{ flex: 30, height: 6, backgroundColor: '#8ccff2', opacity: 0.65 }} /><View style={{ flex: 30, height: 6, backgroundColor: '#b6c4fd' }} />
+                {['c', 'p', 'f'].map((k) => <View key={k} style={{ flex: d.macros[k], height: 6, backgroundColor: MACRO_COLORS[k] }} />)}
               </Row>
               <Row style={{ gap: 8 }}>
-                {[['Carbs', '40%'], ['Protein', '30%'], ['Fats', '30%']].map(([k, v]) => (
-                  <View key={k} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: 'rgba(62,72,79,0.4)' }}>
-                    <T s={10} c={C.outline}>{k}</T><T w="bold" s={16} style={{ marginTop: 2 }}>{v}</T>
-                  </View>
+                {['c', 'p', 'f'].map((k) => (
+                  <Pressable key={k} onPress={() => setMacroOpen(true)} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: 'rgba(62,72,79,0.4)' }}>
+                    <T s={10} c={C.outline}>{MACRO_NAMES[k]}</T><T w="bold" s={16} style={{ marginTop: 2 }}>{d.macros[k]}%</T>
+                  </Pressable>
                 ))}
               </Row>
+              <T s={10} c={C.outline} style={{ marginTop: 10, textAlign: 'center' }}>Tap to adjust carbs / protein / fats</T>
             </View>
 
+            <MacroSheet visible={macroOpen} value={d.macros} onChange={(m) => set('macros', m)} onClose={() => setMacroOpen(false)} />
             <CTA title="Complete Registration" onPress={done} />
             <Missing items={miss} onClose={() => setMiss([])} />
             <Row style={{ justifyContent: 'center', marginTop: 18 }}>
