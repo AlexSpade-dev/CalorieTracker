@@ -8,11 +8,32 @@ WebBrowser.maybeCompleteAuthSession();
 // Android: start the Chrome Custom Tab service BEFORE the user taps Google,
 // so the sign-in page opens instantly instead of cold-starting (~0.5-1.5 s).
 // Call warmUpBrowser() when the Login screen mounts and coolDownBrowser() when it unmounts.
-export function warmUpBrowser() {
-  if (Platform.OS === 'android') WebBrowser.warmUpAsync().catch(() => {});
+// Many Android phones (Xiaomi/MIUI, Samsung, etc.) have another browser set as default, and Google's
+// sign-in page can load very slowly there. Prefer Chrome when it is installed.
+const CHROME = 'com.android.chrome';
+let browserPromise = null;
+function pickBrowser() {
+  if (Platform.OS !== 'android') return Promise.resolve(undefined);
+  if (!browserPromise) {
+    browserPromise = WebBrowser.getCustomTabsSupportingBrowsersAsync()
+      .then((r) => {
+        if (__DEV__) console.log('[auth] default browser =', r.defaultBrowserPackage, '| available =', r.browserPackages.join(', '));
+        return r.browserPackages.includes(CHROME) ? CHROME : undefined;
+      })
+      .catch(() => undefined);
+  }
+  return browserPromise;
 }
-export function coolDownBrowser() {
-  if (Platform.OS === 'android') WebBrowser.coolDownAsync().catch(() => {});
+
+export async function warmUpBrowser() {
+  if (Platform.OS !== 'android') return;
+  const pkg = await pickBrowser();
+  WebBrowser.warmUpAsync(pkg).catch(() => {});
+}
+export async function coolDownBrowser() {
+  if (Platform.OS !== 'android') return;
+  const pkg = await pickBrowser();
+  WebBrowser.coolDownAsync(pkg).catch(() => {});
 }
 
 // dev-only timing so you can see which step is slow in the Metro terminal
@@ -37,7 +58,8 @@ export async function signInWithProvider(provider) {
   if (error) throw error;
   log('oauth url ready');
 
-  const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  const browserPackage = await pickBrowser();
+  const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, browserPackage ? { browserPackage } : undefined);
   log(`browser returned (${res.type})`);
   if (res.type !== 'success') return null;
 

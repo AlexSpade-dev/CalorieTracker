@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
 import { Backdrop, C, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
+import { sendReset } from '../lib/auth';
 import { signInWithProvider } from '../lib/socialAuth';
 
 const AREAS = ['Nutrition Logging', 'Recipe Sync', 'Analytics', 'General Bug', 'UI Design'];
@@ -15,12 +16,19 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
   const [dlg, setDlg] = useState(null); // 'forgot' | 'feedback'
   const [busy, setBusy] = useState(null); // 'google' | 'apple' while the provider page is open
   const [socialErr, setSocialErr] = useState('');
 
-  const submit = () => { const ok = onLogin(email.trim(), pw); setErr(!ok); };
+  const submit = async () => {
+    if (loading) return;
+    setLoading(true);
+    const r = await onLogin(email.trim(), pw);
+    setLoading(false);
+    setErr(r.ok ? '' : (r.error || 'Invalid email or password.'));
+  };
   // Opens Google's account chooser / Apple's sign-in via Supabase, then logs in with the verified account
   const social = async (provider) => {
     if (busy) return;
@@ -61,11 +69,11 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
             <View style={{ marginTop: 26 }}>
               {err && (
                 <Row style={{ backgroundColor: 'rgba(147,0,10,0.3)', borderColor: 'rgba(255,180,171,0.45)', borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 14 }}>
-                  <Icon n="error" s={18} c={C.error} /><T s={12} c={C.error} style={{ flex: 1, marginLeft: 8 }}>Invalid email or password. Try alex@example.com / 1412</T>
+                  <Icon n="error" s={18} c={C.error} /><T s={12} c={C.error} style={{ flex: 1, marginLeft: 8 }}>{err}</T>
                 </Row>
               )}
-              <Field label="Email Address" req icon="mail" placeholder="alex@example.com" value={email} onChangeText={(v) => { setEmail(v); setErr(false); }} keyboardType="email-address" autoCapitalize="none" error={err} />
-              <Field label="Password" req icon="lock" placeholder="••••••••" value={pw} onChangeText={(v) => { setPw(v); setErr(false); }} secureTextEntry={!show} error={err}
+              <Field label="Email Address" req icon="mail" placeholder="alex@example.com" value={email} onChangeText={(v) => { setEmail(v); setErr(false); }} keyboardType="email-address" autoCapitalize="none" error={!!err} />
+              <Field label="Password" req icon="lock" placeholder="••••••••" value={pw} onChangeText={(v) => { setPw(v); setErr(false); }} secureTextEntry={!show} error={!!err}
                 right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility_off' : 'visibility'} s={18} c={C.primary} /></Pressable>} />
               <Row style={{ justifyContent: 'space-between', marginBottom: 18 }}>
                 <Pressable onPress={() => setRemember(!remember)} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -76,7 +84,7 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
                 </Pressable>
                 <Pressable onPress={() => setDlg('forgot')} hitSlop={8}><T w="semibold" s={12} c={C.primary}>Forgot Password?</T></Pressable>
               </Row>
-              <CTA title="Sign In" onPress={submit} />
+              <CTA title={loading ? 'Signing in…' : 'Sign In'} onPress={submit} disabled={loading} />
 
               <Row style={{ marginVertical: 20 }}>
                 <View style={{ flex: 1, height: 1, backgroundColor: border }} />
@@ -112,7 +120,11 @@ function ForgotSheet({ visible, onClose, initial }) {
   const [sent, setSent] = useState(false);
   const [bad, setBad] = useState(false);
   const close = () => { setSent(false); setBad(false); onClose(); };
-  const send = () => { if (!/^\S+@\S+\.\S+$/.test(mail.trim())) { setBad(true); return; } setBad(false); setSent(true); };
+  const send = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(mail.trim())) { setBad(true); return; }
+    setBad(false);
+    try { await sendReset(mail); setSent(true); } catch (e) { setBad(true); }
+  };
   return (
     <Sheet visible={visible} onClose={close}>
       {sent ? (

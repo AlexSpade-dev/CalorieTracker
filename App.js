@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
-import { playNotify } from './src/lib/sounds';
 import Analytics from './src/screens/Analytics';
 import Dashboard from './src/screens/Dashboard';
 import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
@@ -13,6 +12,9 @@ import Login from './src/screens/Login';
 import Recipes from './src/screens/Recipes';
 import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
+import { playNotify } from './src/lib/sounds';
+import { ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
+import { supabase } from './src/lib/supabase';
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -77,7 +79,6 @@ export default function App() {
   const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
   const [screen, setScreen] = useState('welcome'); // welcome | login | signup1 | signup2 | app
   const [tab, setTab] = useState('Log');
-  const [users, setUsers] = useState([DEMO]);
   const [user, setUser] = useState(DEMO);
   const [draft, setDraft] = useState({});
   const [meals, setMeals] = useState(DEMO_MEALS);
@@ -127,35 +128,37 @@ export default function App() {
     if (!r.canceled && r.assets && r.assets[0]) { setPhoto(r.assets[0].uri); say('Photo updated', 'Your profile picture was changed.'); }
   };
 
-  // ----- auth -----
-  const login = (email, pw) => {
-    const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === pw);
-    if (!u) return false;
-    setUser(u); setPhoto(null);
-    setMeals([]);
-    setWater(0);
-    setActiveDays([]);
-    setSeen([]);
+  // ----- auth (Supabase) -----
+  const startSession = (u) => {
+    setUser(u); setPhoto(u.avatar || null);
+    setMeals([]); setWater(0); setActiveDays([]); setSeen([]);
     goalShown.current = false;
     setTab('Log');
     setScreen('app');
-    return true;
   };
-  const socialLogin = (provider, mail, fullName, avatar) => {
-    const email = mail.trim().toLowerCase();
-    let u = users.find((x) => x.email.toLowerCase() === email);
-    if (!u) {
-      const nm = (fullName || email.split('@')[0]).replace(/[._-]+/g, ' ');
-      u = { name: nm.split(' ')[0].charAt(0).toUpperCase() + nm.split(' ')[0].slice(1), email, password: '', goal: 2200, provider };
-      setUsers((x) => [...x, u]);
-    }
-    setUser(u); setPhoto(avatar || null); setMeals([]); setWater(0); setActiveDays([]); setSeen([]); goalShown.current = false; setTab('Log'); setScreen('app');
+  const enter = async (authUser) => startSession(toUser(authUser, await ensureProfile(authUser)));
+
+  const login = async (email, pw) => {
+    try { await enter(await signInWithEmail(email, pw)); return { ok: true }; }
+    catch (e) { return { ok: false, error: e?.message || 'Could not sign in.' }; }
   };
-  const register = (d1, d2) => {
-    const u = { name: (d1.name || 'Friend').trim().split(' ')[0], email: d1.email || 'you@example.com', password: d1.password || '', goal: d1.goal || 2200, profile: d2 };
-    setUsers((x) => [...x, u]);
-    setUser(u); setPhoto(null); setActiveDays([]); setSeen([]); setMeals([]); setWater(0); goalShown.current = false; setTab('Log'); setScreen('app');
+  const socialLogin = async () => {
+    try { const { data } = await supabase.auth.getUser(); if (data?.user) await enter(data.user); }
+    catch (e) { say('Sign-in failed', e?.message || 'Please try again.'); }
   };
+  const register = async (d1, d2) => {
+    try {
+      const r = await signUpWithEmail(d1, d2);
+      if (r.needsConfirm) { say('Check your email', 'Confirm your account, then sign in.'); setScreen('login'); }
+      else await enter(r.user);
+    } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
+  };
+  const doSignOut = async () => { await signOut(); setScreen('login'); };
+
+  // stay signed in after closing the app
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => { if (data?.session?.user) enter(data.session.user).catch(() => {}); });
+  }, []);
 
   // ----- logging -----
   const commit = (m, msg) => {
@@ -205,7 +208,7 @@ export default function App() {
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
         {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
-        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={() => setScreen('login')}
+        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut}
           onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
           onPreviewGoal={() => { setGoalDemo(true); setGoalHit(true); }} />}
         <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />
