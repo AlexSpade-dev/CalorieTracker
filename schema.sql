@@ -137,3 +137,33 @@ create policy "own water"    on public.water_logs for all using (user_id = auth.
 create policy "own weigh-ins" on public.weigh_ins for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own activity" on public.daily_activity for select using (user_id = auth.uid());
 create policy "recipes readable by signed-in users" on public.recipes for select using (auth.role() = 'authenticated');
+
+-- 8) Delete account (Profile -> Delete account)
+-- Deletes the signed-in user's auth account. Everything else (profile, meals, water,
+-- weigh-ins, streak days) is removed automatically by the "on delete cascade" links above.
+-- It can only ever delete the caller's own account (auth.uid()).
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if auth.uid() is null then raise exception 'Not authenticated'; end if;
+  delete from auth.users where id = auth.uid();
+end $$;
+
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
+notify pgrst, 'reload schema'; -- refresh Supabase's API cache so the app can find the function
+
+-- 9) Health check (safe to run any time, it only reads)
+-- Expected result: tables_found = 7, functions_found = 3
+select
+  (select count(*) from information_schema.tables
+     where table_schema = 'public'
+       and table_name in ('profiles','meals','water_logs','weigh_ins','recipes','daily_activity','daily_summary')) as tables_found,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname in ('delete_my_account','record_activity','current_streak')) as functions_found;
