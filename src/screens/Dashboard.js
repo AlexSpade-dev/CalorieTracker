@@ -1,12 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 import { Field } from '../components/Field';
 import { AppHeader, Bar, BottomNav, C, CTA, Icon, IconBox, Pill, Ring, Row, Scroll, Sheet, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.45)';
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const parseKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const SLOT = { Breakfast: 'wb_twilight', Lunch: 'wb_sunny', Snack: 'cookie', Dinner: 'nights_stay' };
 
 const Panel = ({ children, style }) => (
@@ -15,17 +18,34 @@ const Panel = ({ children, style }) => (
   </View>
 );
 
-export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal, meals, water, waterGoal = 2500, tab, onTab, onAddWater, onLogMeal, onQuickAdd, toast }) {
+// solid red ring, shown instead of the normal progress ring when the user is over their goal
+function OverRing({ size, stroke, children }) {
+  const r = (size - stroke) / 2;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute' }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={C.error} strokeWidth={stroke} fill="none" />
+      </Svg>
+      {children}
+    </View>
+  );
+}
+
+export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal, meals, water, waterGoal = 2500, tab, onTab, onAddWater, onLogMeal, onQuickAdd, viewDay, activeDays = [], onPickDay, toast }) {
   const [dlg, setDlg] = useState(null);
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
-  const left = Math.max(0, goal - consumed);
+  const left = goal - consumed; // negative when over the goal
+  const over = left < 0;
+  const Wrap = over ? OverRing : Ring;
   const sum = (k) => meals.reduce((n, m) => n + (m[k] || 0), 0);
   const macros = [['Carbs', sum('carbs'), Math.round((goal * split.c) / 400)], ['Protein', sum('protein'), Math.round((goal * split.p) / 400)], ['Fats', sum('fats'), Math.round((goal * split.f) / 900)]];
   const slots = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
   const logged = slots.filter((s) => meals.some((m) => m.meal === s));
   const hour = new Date().getHours();
   const hello = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const todayKey = dayKey();
+  const isToday = !viewDay || viewDay === todayKey;
+  const today = parseKey(viewDay || todayKey).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   const deficit = consumed <= goal;
 
   return (
@@ -37,21 +57,27 @@ export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal,
             <T w="bold" s={24} style={{ letterSpacing: -0.5 }}>{hello}, {name} 👋</T>
             <T s={12} c={C.onSurfaceVariant} style={{ marginTop: 3 }}>{today} • Caloric Deficit Target</T>
           </View>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}><Icon n="calendar_today" s={17} c={C.primary} /></View>
+          <Pressable onPress={() => setDlg('cal')} hitSlop={8} accessibilityLabel="Open calendar" style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 12, backgroundColor: isToday ? C.surface : 'rgba(121,209,255,0.16)', borderWidth: 1, borderColor: isToday ? border : C.primary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}><Icon n="calendar_today" s={17} c={C.primary} /></Pressable>
         </Row>
+        {!isToday && (
+          <Row style={{ justifyContent: 'space-between', padding: 12, borderRadius: 14, backgroundColor: 'rgba(121,209,255,0.1)', borderWidth: 1, borderColor: 'rgba(121,209,255,0.3)', marginBottom: 14 }}>
+            <T s={12} c={C.onSurfaceVariant} style={{ flex: 1 }}>Viewing a past day. Logging is only available for today.</T>
+            <Pressable onPress={() => onPickDay && onPickDay(todayKey)} hitSlop={8}><T w="bold" s={12} c={C.primary}>Back to today</T></Pressable>
+          </Row>
+        )}
 
         {/* energy intake */}
         <Panel>
           <Row style={{ justifyContent: 'space-between' }}>
             <Row><Icon n="local_fire_department" s={15} c={C.secondary} /><T w="bold" s={11} c={C.secondary} style={{ marginLeft: 6, letterSpacing: 1 }}>ENERGY INTAKE</T></Row>
-            <Pill><T w="bold" s={10} c={C.primary}>{deficit ? 'Active Deficit' : 'Over Target'}</T></Pill>
+            <Pill><T w="bold" s={10} c={deficit ? C.primary : C.error}>{deficit ? 'Active Deficit' : 'Over Target'}</T></Pill>
           </Row>
           <View style={{ alignItems: 'center', marginVertical: 18 }}>
-            <Ring size={170} stroke={13} pct={(consumed / goal) * 100}>
-              <T w="extrabold" s={40} style={{ letterSpacing: -1 }}>{fmt(left)}</T>
-              <T w="bold" s={10} c={C.secondary} style={{ letterSpacing: 1.2 }}>KCAL LEFT</T>
+            <Wrap size={170} stroke={13} pct={(consumed / goal) * 100}>
+              <T w="extrabold" s={40} c={over ? C.error : undefined} style={{ letterSpacing: -1 }}>{fmt(left)}</T>
+              <T w="bold" s={10} c={over ? C.error : C.secondary} style={{ letterSpacing: 1.2 }}>KCAL LEFT</T>
               <T s={11} c={C.onSurfaceVariant}>of {fmt(goal)}</T>
-            </Ring>
+            </Wrap>
           </View>
           {[['local_fire_department', 'Consumed', consumed], ['bolt', 'Base Burn', 1820]].map(([ic, l, v]) => (
             <Row key={l} style={{ justifyContent: 'space-between', padding: 12, borderRadius: 14, backgroundColor: 'rgba(8,10,44,0.45)', borderWidth: 1, borderColor: border, marginBottom: 8 }}>
@@ -110,7 +136,7 @@ export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal,
               <IconBox n={SLOT[slot]} size={40} s={20} r={20} bg="rgba(121,209,255,0.08)" />
               <View style={{ flex: 1, marginHorizontal: 12 }}>
                 <T w="bold" s={14}>{slot}</T>
-                <T s={11} c={C.onSurfaceVariant} style={{ marginTop: 2 }}>Remaining budget: {fmt(left)} kcal</T>
+                <T s={11} c={over ? C.error : C.onSurfaceVariant} style={{ marginTop: 2 }}>Remaining budget: {fmt(left)} kcal</T>
               </View>
               <Pressable onPress={() => setDlg(slot)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: C.primary }}>
                 <Icon n="add" s={15} c={C.onPrimaryContainer} /><T w="bold" s={12} c={C.onPrimaryContainer} style={{ marginLeft: 2 }}>Add</T>
@@ -128,8 +154,53 @@ export default function Dashboard({ split = { c: 40, p: 30, f: 30 }, name, goal,
       <BottomNav active={tab} onChange={onTab} />
 
       <HydrationDialog visible={dlg === 'water'} onClose={() => setDlg(null)} water={water} goal={waterGoal} onConfirm={(ml) => { onAddWater(ml); setDlg(null); }} />
-      <MealDialog visible={!!dlg && dlg !== 'water'} slot={dlg} left={left} onClose={() => setDlg(null)} onConfirm={(m) => { setDlg(null); onLogMeal(m); }} />
+      <CalendarSheet visible={dlg === 'cal'} onClose={() => setDlg(null)} selected={viewDay || todayKey} activeDays={activeDays} onPick={(k) => { setDlg(null); onPickDay && onPickDay(k); }} />
+      <MealDialog visible={!!dlg && dlg !== 'water' && dlg !== 'cal'} slot={dlg} left={left} onClose={() => setDlg(null)} onConfirm={(m) => { setDlg(null); onLogMeal(m); }} />
     </View>
+  );
+}
+
+/* ---------- Calendar (pick a day to view) ---------- */
+function CalendarSheet({ visible, onClose, selected, activeDays, onPick }) {
+  const sel = parseKey(selected);
+  const [month, setMonth] = useState(new Date(sel.getFullYear(), sel.getMonth(), 1));
+  useEffect(() => { if (visible) setMonth(new Date(sel.getFullYear(), sel.getMonth(), 1)); }, [visible]);
+  const now = new Date();
+  const todayKey = dayKey(now);
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const cells = [...Array((first.getDay() + 6) % 7).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)];
+  const atNow = month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth();
+  const go = (n) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1));
+  return (
+    <Sheet visible={visible} onClose={onClose} mode="center">
+      <Row style={{ justifyContent: 'space-between' }}>
+        <T w="bold" s={18}>Pick a day</T>
+        <Pressable onPress={onClose} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+      </Row>
+      <Row style={{ justifyContent: 'space-between', marginTop: 14, marginBottom: 8 }}>
+        <Pressable onPress={() => go(-1)} hitSlop={10}><Icon n="arrow_back" s={20} c={C.primary} /></Pressable>
+        <T w="bold" s={14}>{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</T>
+        <Pressable onPress={() => !atNow && go(1)} hitSlop={10} style={{ opacity: atNow ? 0.25 : 1 }}><Icon n="arrow_forward" s={20} c={C.primary} /></Pressable>
+      </Row>
+      <Row style={{ flexWrap: 'wrap' }}>
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <View key={`h${i}`} style={{ width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 4 }}><T w="bold" s={10} c={C.outline}>{d}</T></View>)}
+        {cells.map((n, i) => {
+          if (!n) return <View key={`e${i}`} style={{ width: `${100 / 7}%`, height: 42 }} />;
+          const key = dayKey(new Date(month.getFullYear(), month.getMonth(), n));
+          const future = key > todayKey, on = key === selected, has = activeDays.includes(key);
+          return (
+            <Pressable key={key} disabled={future} onPress={() => onPick(key)} style={{ width: `${100 / 7}%`, height: 42, alignItems: 'center', justifyContent: 'center', opacity: future ? 0.25 : 1 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? C.primary : 'transparent', borderWidth: key === todayKey && !on ? 1 : 0, borderColor: C.primary }}>
+                <T w={on ? 'bold' : 'semibold'} s={13} c={on ? C.onPrimaryContainer : C.text}>{n}</T>
+              </View>
+              {has && !on && <View style={{ position: 'absolute', bottom: 1, width: 4, height: 4, borderRadius: 2, backgroundColor: C.primary }} />}
+            </Pressable>
+          );
+        })}
+      </Row>
+      <T s={10} c={C.outline} style={{ marginTop: 8 }}>Dots mark days where you logged a meal.</T>
+    </Sheet>
   );
 }
 
@@ -180,7 +251,7 @@ function MealDialog({ visible, slot = 'Dinner', left, onClose, onConfirm }) {
   return (
     <Sheet visible={visible} onClose={onClose} mode="center">
       <Row style={{ justifyContent: 'space-between' }}>
-        <Row><IconBox n={SLOT[slot] || 'restaurant'} size={38} s={20} r={19} /><View style={{ marginLeft: 10 }}><T w="bold" s={17}>Log {slot} Meal</T><Row><T s={11} c={C.onSurfaceVariant}>Remaining budget: </T><T w="bold" s={11} c={C.primary}>{fmt(left)} kcal</T></Row></View></Row>
+        <Row><IconBox n={SLOT[slot] || 'restaurant'} size={38} s={20} r={19} /><View style={{ marginLeft: 10 }}><T w="bold" s={17}>Log {slot} Meal</T><Row><T s={11} c={C.onSurfaceVariant}>Remaining budget: </T><T w="bold" s={11} c={left < 0 ? C.error : C.primary}>{fmt(left)} kcal</T></Row></View></Row>
         <Pressable onPress={onClose} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
       </Row>
       <T w="bold" s={10} c={C.outline} style={{ marginTop: 16, marginBottom: 8, letterSpacing: 1 }}>SMART SUGGESTIONS</T>

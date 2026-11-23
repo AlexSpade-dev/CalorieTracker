@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
+import { calcGoal } from '../lib/calories';
 import { Backdrop, C, Choice, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
 
 const border = 'rgba(62,72,79,0.55)';
@@ -60,14 +61,8 @@ function Missing({ items, onClose }) {
   );
 }
 
-const GOALS = [
-  { kcal: 1800, tag: 'DEFICIT', desc: 'Fat Loss & Lean Conditioning', icon: 'local_fire_department', tint: '#ffb4ab' },
-  { kcal: 2200, tag: 'OPTIMAL', desc: 'Maintenance & Daily Energy', icon: 'balance', tint: C.primary },
-  { kcal: 2600, tag: 'SURPLUS', desc: 'Muscle Gain & Hypertrophy', icon: 'fitness_center', tint: '#b6c4fd' },
-];
-
 export function SignUp1({ draft, onNext, onBack, onSignIn }) {
-  const [d, setD] = useState({ name: '', email: '', password: '', goal: 2200, agree: false, ...draft });
+  const [d, setD] = useState({ name: '', email: '', password: '', agree: false, ...draft });
   const [show, setShow] = useState(false);
   const [err, setErr] = useState({});
   const [miss, setMiss] = useState([]);
@@ -76,7 +71,7 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
   const barCol = st.n <= 1 ? C.error : st.n === 2 ? '#ffd27a' : C.primary;
 
   const next = () => {
-    const e = { name: !d.name.trim(), email: !/^\S+@\S+\.\S+$/.test(d.email.trim()), password: d.password.length < 6, agree: !d.agree };
+    const e = { name: !d.name.trim(), email: !/^\S+@\S+\.\S+$/.test(d.email.trim()), password: !d.social && d.password.length < 6, agree: !d.agree };
     setErr(e);
     const list = [];
     if (e.name) list.push('Enter your full name');
@@ -96,27 +91,16 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
 
             <Field label="Full Name" hint="Required" icon="person_outline" placeholder="e.g. Alex Morgan" value={d.name} onChangeText={(v) => set('name', v)} error={err.name} />
             <Field label="Email Address" hint="Verification link will be sent" icon="mail_outline" placeholder="alex@example.com" value={d.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" autoCapitalize="none" error={err.email} />
-            <Field label="Password" hint={st.n ? st.label : undefined} icon="vpn_key" placeholder="Create a strong password" value={d.password} onChangeText={(v) => set('password', v)} secureTextEntry={!show} error={err.password} style={{ marginBottom: 8 }}
-              right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.outline} /></Pressable>} />
-            <Row style={{ gap: 6, marginBottom: 6 }}>
-              {[0, 1, 2, 3].map((i) => <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i < st.n ? barCol : 'rgba(62,72,79,0.6)' }} />)}
-            </Row>
-            <T s={10} c={C.outline} style={{ marginBottom: 18 }}>Includes numbers, symbols, and uppercase letters</T>
-
-            <Row style={{ justifyContent: 'space-between', marginBottom: 8 }}><T w="semibold" s={13}>Daily Calorie Goal</T><T s={10} c={C.outline}>Can be changed later</T></Row>
-            {GOALS.map((g) => {
-              const on = d.goal === g.kcal;
-              return (
-                <Choice key={g.kcal} on={on} onPress={() => set('goal', g.kcal)}>
-                  <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: on ? C.primary : 'rgba(136,146,154,0.6)', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>{on && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary }} />}</View>
-                  <View style={{ flex: 1 }}>
-                    <Row><T w="bold" s={15}>{g.kcal.toLocaleString('en-US')} kcal</T><View style={{ marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: 'rgba(121,209,255,0.12)' }}><T w="bold" s={9} c={g.tint} style={{ letterSpacing: 0.6 }}>{g.tag}</T></View></Row>
-                    <T s={11} c={C.onSurfaceVariant} style={{ marginTop: 2 }}>{g.desc}</T>
-                  </View>
-                  <Icon n={g.icon} s={18} c={on ? C.primary : C.outline} />
-                </Choice>
-              );
-            })}
+            {!d.social && (
+              <>
+              <Field label="Password" hint={st.n ? st.label : undefined} icon="vpn_key" placeholder="Create a strong password" value={d.password} onChangeText={(v) => set('password', v)} secureTextEntry={!show} error={err.password} style={{ marginBottom: 8 }}
+                right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.outline} /></Pressable>} />
+              <Row style={{ gap: 6, marginBottom: 6 }}>
+                {[0, 1, 2, 3].map((i) => <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i < st.n ? barCol : 'rgba(62,72,79,0.6)' }} />)}
+              </Row>
+              <T s={10} c={C.outline} style={{ marginBottom: 18 }}>Includes numbers, symbols, and uppercase letters</T>
+              </>
+            )}
 
             <Pressable onPress={() => set('agree', !d.agree)} style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 4, marginBottom: 18 }}>
               <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: err.agree ? C.error : d.agree ? C.primaryContainer : border, backgroundColor: d.agree ? C.primaryContainer : 'transparent', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{d.agree && <Icon n="check" s={14} c={C.onPrimaryContainer} />}</View>
@@ -209,6 +193,7 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
   const [macroOpen, setMacroOpen] = useState(false);
   const set = (k, v) => { setD((x) => ({ ...x, [k]: v })); setErr((e) => ({ ...e, [k]: false })); };
   const num = (k) => (v) => set(k, v.replace(/[^0-9.]/g, ''));
+  const est = calcGoal(d);
 
   const done = () => {
     const e = { age: !+d.age, height: !+d.height, weight: !+d.weight, target: !+d.target };
@@ -231,11 +216,11 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
 
             <T w="semibold" s={13} style={{ marginBottom: 8 }}>Biological Sex</T>
             <Row style={{ gap: 12, marginBottom: 16 }}>
-              {[['Male', 'male'], ['Female', 'female']].map(([s, ic]) => {
+              {[['Male', 'male', '#79d1ff', 'rgba(26,155,205,0.16)'], ['Female', 'female', '#ff8fb8', 'rgba(255,143,184,0.18)']].map(([s, ic, col, tint]) => {
                 const on = d.sex === s;
                 return (
-                  <Pressable key={s} onPress={() => set('sex', s)} style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: on ? 1.5 : 1, borderColor: on ? C.primary : border, backgroundColor: on ? 'rgba(26,155,205,0.16)' : C.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
-                    <Icon n={ic} s={17} c={on ? C.primary : C.outline} /><T w="semibold" s={13} c={on ? C.primary : C.onSurfaceVariant} style={{ marginLeft: 7 }}>{s}</T>
+                  <Pressable key={s} onPress={() => set('sex', s)} style={{ flex: 1, height: 46, borderRadius: 12, borderWidth: on ? 1.5 : 1, borderColor: on ? col : border, backgroundColor: on ? tint : C.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+                    <Icon n={ic} s={17} c={on ? col : C.outline} /><T w="semibold" s={13} c={on ? col : C.onSurfaceVariant} style={{ marginLeft: 7 }}>{s}</T>
                   </Pressable>
                 );
               })}
@@ -264,6 +249,14 @@ export function SignUp2({ draft, onBack, onComplete, onSkip }) {
                 </Choice>
               );
             })}
+
+            <View style={{ padding: 14, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(121,209,255,0.3)', backgroundColor: 'rgba(121,209,255,0.08)', marginTop: 2, marginBottom: 14 }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Row><Icon n="local_fire_department" s={16} c={C.primary} /><T w="semibold" s={12} style={{ marginLeft: 6 }}>Your daily calorie goal</T></Row>
+                <T w="extrabold" s={18} c={C.primary}>{est ? `${est.goal.toLocaleString('en-US')} kcal` : '-- kcal'}</T>
+              </Row>
+              <T s={10} c={C.outline} style={{ marginTop: 8 }}>{est ? `Calculated from your age, height, weight, target and activity level (about ${est.tdee.toLocaleString('en-US')} kcal burned per day).` : 'Enter your age, height and weight to calculate it.'}</T>
+            </View>
 
             <View style={{ padding: 14, borderRadius: 14, borderWidth: 1, borderColor: border, backgroundColor: C.surface, marginTop: 2, marginBottom: 20 }}>
               <Row style={{ justifyContent: 'space-between' }}>

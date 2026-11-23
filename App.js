@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DeleteAccountSheet from './src/components/DeleteAccountSheet';
 import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
 import { deleteAccount, ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
+import { calcGoal } from './src/lib/calories';
 import { playNotify } from './src/lib/sounds';
 import { supabase } from './src/lib/supabase';
 import Analytics from './src/screens/Analytics';
@@ -104,12 +105,13 @@ export default function App() {
   const goalShown = useRef(false);
   const timer = useRef(null);
   const uid = useRef(null);
+  const [viewDay, setViewDay] = useState(dayKey()); // day shown on the Log tab (calendar)
 
   // ----- database helpers -----
   const fromRow = (r) => ({ id: r.id, meal: r.slot, name: r.name, kcal: r.kcal, carbs: Number(r.carbs_g), protein: Number(r.protein_g), fats: Number(r.fats_g) });
 
-  const loadToday = async (id) => {
-    const today = dayKey();
+  const loadToday = async (id, day = dayKey()) => {
+    const today = day;
     const [m, w, a] = await Promise.all([
       supabase.from('meals').select('*').eq('user_id', id).eq('eaten_on', today).order('created_at'),
       supabase.from('water_logs').select('ml').eq('user_id', id).eq('logged_on', today),
@@ -178,7 +180,7 @@ export default function App() {
 
   // ----- auth (Supabase) -----
   const startSession = (u) => {
-    setUser(u); setPhoto(u.avatar || null);
+    setUser(u); setPhoto(u.avatar || null); setViewDay(dayKey());
     setMeals([]); setWater(0); setActiveDays([]); setSeen([]);
     goalShown.current = false;
     setTab('Log');
@@ -217,7 +219,8 @@ export default function App() {
       const macroOk = mc && +mc.c + +mc.p + +mc.f === 100;
       const row = {
         id: u.id,
-        full_name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'User',
+        full_name: draft.name?.trim() || u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'User',
+        daily_goal_kcal: calcGoal(d2)?.goal ?? 2200,
         avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || null,
         ...(['Male', 'Female'].includes(d2.sex) ? { sex: d2.sex } : {}),
         ...(num(d2.age) ? { age: num(d2.age) } : {}),
@@ -234,7 +237,7 @@ export default function App() {
 
   const register = async (d1, d2) => {
     try {
-      const r = await signUpWithEmail(d1, d2);
+      const r = await signUpWithEmail({ ...d1, goal: calcGoal(d2)?.goal ?? 2200 }, d2);
       if (r.needsConfirm) { say('Check your email', 'Confirm your account, then sign in.'); setScreen('login'); }
       else await enter(r.user);
     } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
@@ -290,12 +293,20 @@ export default function App() {
     if (consumed + p.kcal <= goal) { setPending(null); commit(p, ['Portion adjusted', 'Logged at 75% to stay within your target.']); } else setPending(p);
   };
 
+  // calendar: look at another day's log (read-only; logging only works on today)
+  const isToday = viewDay === dayKey();
+  const pickDay = (key) => { setViewDay(key); if (uid.current) loadToday(uid.current, key); };
+  const guard = (fn) => (...a) => {
+    if (!isToday) { say('Viewing a past day', 'Go back to today to log meals or water.'); return; }
+    fn(...a);
+  };
+
   if (!fontsLoaded) return null;
 
   let body;
   if (screen === 'welcome') body = <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
   else if (screen === 'login') body = <Login onLogin={login} onSocial={socialLogin} onSignUp={() => setScreen('signup1')} />;
-  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup1'); }} />;
+  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup2'); }} />;
   else if (screen === 'signup2') body = (
     <SignUp2
       draft={draft.step2}
@@ -305,13 +316,14 @@ export default function App() {
     />
   );
   else {
-    const common = { tab, onTab: setTab };
+    const common = { tab, onTab: (t) => { if (t !== 'Log' && !isToday) pickDay(dayKey()); setTab(t); } };
     body = (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         {tab === 'Log' && <Dashboard {...common} split={split} name={user.name} goal={goal} meals={meals} water={water}
-          onAddWater={(ml) => { setWater((w) => w + ml); saveWater(ml); say('Action confirmed', 'Update saved successfully.'); }}
-          onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
-        {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
+          viewDay={viewDay} activeDays={activeDays} onPickDay={pickDay}
+          onAddWater={guard((ml) => { setWater((w) => w + ml); saveWater(ml); say('Action confirmed', 'Update saved successfully.'); })}
+          onLogMeal={guard(attempt)} onQuickAdd={guard(() => setQuick(true))} />}
+        {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={guard(attempt)} />}
         {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
         {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut} onDeleteAccount={doDeleteAccount}
           onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
