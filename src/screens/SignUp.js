@@ -97,7 +97,7 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
             <Field label="Full Name" hint="Required" icon="person_outline" placeholder="e.g. Alex Morgan" value={d.name} onChangeText={(v) => set('name', v)} error={err.name} />
             <Field label="Email Address" hint="Verification link will be sent" icon="mail_outline" placeholder="alex@example.com" value={d.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" autoCapitalize="none" error={err.email} />
             <Field label="Password" hint={st.n ? st.label : undefined} icon="vpn_key" placeholder="Create a strong password" value={d.password} onChangeText={(v) => set('password', v)} secureTextEntry={!show} error={err.password} style={{ marginBottom: 8 }}
-              right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility_off' : 'visibility'} s={18} c={C.outline} /></Pressable>} />
+              right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.outline} /></Pressable>} />
             <Row style={{ gap: 6, marginBottom: 6 }}>
               {[0, 1, 2, 3].map((i) => <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i < st.n ? barCol : 'rgba(62,72,79,0.6)' }} />)}
             </Row>

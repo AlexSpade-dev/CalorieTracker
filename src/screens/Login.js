@@ -74,7 +74,7 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
               )}
               <Field label="Email Address" req icon="mail" placeholder="alex@example.com" value={email} onChangeText={(v) => { setEmail(v); setErr(false); }} keyboardType="email-address" autoCapitalize="none" error={!!err} />
               <Field label="Password" req icon="lock" placeholder="••••••••" value={pw} onChangeText={(v) => { setPw(v); setErr(false); }} secureTextEntry={!show} error={!!err}
-                right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility_off' : 'visibility'} s={18} c={C.primary} /></Pressable>} />
+                right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.primary} /></Pressable>} />
               <Row style={{ justifyContent: 'space-between', marginBottom: 18 }}>
                 <Pressable onPress={() => setRemember(!remember)} style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: remember ? C.primaryContainer : border, backgroundColor: remember ? C.primaryContainer : 'transparent', alignItems: 'center', justifyContent: 'center' }}>

@@ -2,10 +2,11 @@ import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSan
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { LogBox, Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import DeleteAccountSheet from './src/components/DeleteAccountSheet';
 import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
-import { ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
+import { deleteAccount, ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
 import { playNotify } from './src/lib/sounds';
 import { supabase } from './src/lib/supabase';
 import Analytics from './src/screens/Analytics';
@@ -15,6 +16,9 @@ import Login from './src/screens/Login';
 import Recipes from './src/screens/Recipes';
 import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
+
+// web only: react-native-svg onPress on <Rect> logs this harmless warning
+LogBox.ignoreLogs(['Unknown event handler property']);
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -48,7 +52,8 @@ function Toast({ toast, onClose }) {
   );
 }
 
-function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut, onPreviewOverdraft, onPreviewGoal }) {
+function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut, onDeleteAccount, onPreviewOverdraft, onPreviewGoal }) {
+  const [delOpen, setDelOpen] = useState(false);
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: C.bg }}><AppHeader /></SafeAreaView>
@@ -69,8 +74,13 @@ function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignO
           <CTA tone="ghost" title="Daily Goal Hit" icon="military_tech" onPress={onPreviewGoal} />
         </Card>
         <CTA tone="ghost" title="Sign Out" icon="logout" onPress={onSignOut} />
+        <Pressable onPress={() => setDelOpen(true)} hitSlop={8} style={{ alignItems: 'center', marginTop: 18, marginBottom: 8 }}>
+          <T w="semibold" s={13} c={C.error}>Delete account</T>
+        </Pressable>
       </Scroll>
       <BottomNav active={tab} onChange={onTab} />
+      <DeleteAccountSheet visible={delOpen} onClose={() => setDelOpen(false)}
+        onConfirm={async () => { await onDeleteAccount(); setDelOpen(false); }} />
     </View>
   );
 }
@@ -230,6 +240,13 @@ export default function App() {
     } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
   };
   const doSignOut = async () => { await signOut(); setScreen('login'); };
+  // permanently deletes the Supabase account + all its data; throws on failure so the sheet can show the error
+  const doDeleteAccount = async () => {
+    await deleteAccount();
+    uid.current = null;
+    setScreen('login');
+    say('Account deleted', 'All your data has been removed.');
+  };
 
   // stay signed in after closing the app (only if the profile exists)
   useEffect(() => {
@@ -296,7 +313,7 @@ export default function App() {
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
         {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
-        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut}
+        {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut} onDeleteAccount={doDeleteAccount}
           onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
           onPreviewGoal={() => { setGoalDemo(true); setGoalHit(true); }} />}
         <QuickAdd visible={quick} consumed={consumed} goal={goal} onClose={() => setQuick(false)} onAdd={(m) => { setQuick(false); attempt(m); }} />

@@ -65,3 +65,11 @@ export async function signUpWithEmail(d1, d2 = {}) {
 
 export const sendReset = (email) => supabase.auth.resetPasswordForEmail(email.trim());
 export const signOut = () => supabase.auth.signOut();
+
+// Permanently deletes the signed-in user's Supabase account (cascades to all their data).
+// Requires the delete_my_account() SQL function.
+export async function deleteAccount() {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) throw error;
+  await supabase.auth.signOut({ scope: 'local' }); // user no longer exists server-side
+}
