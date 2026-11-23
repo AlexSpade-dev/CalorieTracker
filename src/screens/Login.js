@@ -67,7 +67,7 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
 
             {/* form */}
             <View style={{ marginTop: 26 }}>
-              {err && (
+              {!!err && (
                 <Row style={{ backgroundColor: 'rgba(147,0,10,0.3)', borderColor: 'rgba(255,180,171,0.45)', borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 14 }}>
                   <Icon n="error" s={18} c={C.error} /><T s={12} c={C.error} style={{ flex: 1, marginLeft: 8 }}>{err}</T>
                 </Row>

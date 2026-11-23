@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
+import { ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
+import { playNotify } from './src/lib/sounds';
+import { supabase } from './src/lib/supabase';
 import Analytics from './src/screens/Analytics';
 import Dashboard from './src/screens/Dashboard';
 import { GoalHit, Overdraft, QuickAdd } from './src/screens/Dialogs';
@@ -12,9 +15,6 @@ import Login from './src/screens/Login';
 import Recipes from './src/screens/Recipes';
 import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
-import { playNotify } from './src/lib/sounds';
-import { ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
-import { supabase } from './src/lib/supabase';
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -93,6 +93,44 @@ export default function App() {
   const [goalDemo, setGoalDemo] = useState(false);
   const goalShown = useRef(false);
   const timer = useRef(null);
+  const uid = useRef(null);
+
+  // ----- database helpers -----
+  const fromRow = (r) => ({ id: r.id, meal: r.slot, name: r.name, kcal: r.kcal, carbs: Number(r.carbs_g), protein: Number(r.protein_g), fats: Number(r.fats_g) });
+
+  const loadToday = async (id) => {
+    const today = dayKey();
+    const [m, w, a] = await Promise.all([
+      supabase.from('meals').select('*').eq('user_id', id).eq('eaten_on', today).order('created_at'),
+      supabase.from('water_logs').select('ml').eq('user_id', id).eq('logged_on', today),
+      supabase.from('daily_activity').select('day').eq('user_id', id),
+    ]);
+    if (m.data) setMeals(m.data.map(fromRow));
+    if (w.data) setWater(w.data.reduce((n, r) => n + r.ml, 0));
+    if (a.data) setActiveDays(a.data.map((r) => r.day));
+  };
+
+  const saveMeal = async (m, tempId) => {
+    if (!uid.current) return;
+    const slot = ['Breakfast', 'Lunch', 'Snack', 'Dinner'].includes(m.meal) ? m.meal : 'Snack';
+    const { data, error } = await supabase.from('meals').insert({
+      user_id: uid.current, eaten_on: dayKey(), slot, name: m.name, kcal: Math.round(m.kcal),
+      carbs_g: m.carbs || 0, protein_g: m.protein || 0, fats_g: m.fats || 0,
+    }).select().single();
+    if (error) { say('Meal not saved', error.message); return; }
+    setMeals((x) => x.map((i) => (i.id === tempId ? { ...i, id: data.id } : i)));
+  };
+
+  const saveWater = async (ml) => {
+    if (!uid.current) return;
+    const { error } = await supabase.from('water_logs').insert({ user_id: uid.current, logged_on: dayKey(), ml });
+    if (error) say('Water not saved', error.message);
+  };
+
+  const hasProfile = async (id) => {
+    const { data } = await supabase.from('profiles').select('id').eq('id', id).maybeSingle();
+    return !!data;
+  };
 
   const goal = user.goal || 2200;
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
@@ -136,16 +174,54 @@ export default function App() {
     setTab('Log');
     setScreen('app');
   };
-  const enter = async (authUser) => startSession(toUser(authUser, await ensureProfile(authUser)));
-
+  const enter = async (authUser) => {
+    uid.current = authUser.id;
+    startSession(toUser(authUser, await ensureProfile(authUser)));
+    loadToday(authUser.id);
+  };
   const login = async (email, pw) => {
     try { await enter(await signInWithEmail(email, pw)); return { ok: true }; }
     catch (e) { return { ok: false, error: e?.message || 'Could not sign in.' }; }
   };
+
+  // Google/Apple: existing users go straight in, new users finish sign-up first
   const socialLogin = async () => {
-    try { const { data } = await supabase.auth.getUser(); if (data?.user) await enter(data.user); }
-    catch (e) { say('Sign-in failed', e?.message || 'Please try again.'); }
+    try {
+      const { data } = await supabase.auth.getUser();
+      const u = data?.user;
+      if (!u) return;
+      if (await hasProfile(u.id)) { await enter(u); return; }
+      setDraft({ name: u.user_metadata?.full_name || '', email: u.email, social: true });
+      setScreen('signup1');
+    } catch (e) { say('Sign-in failed', e?.message || 'Please try again.'); }
   };
+
+  // Saves the profile for a new Google/Apple user (no password account is created)
+  const finishSocial = async (d2 = {}) => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const u = data?.user;
+      if (!u) { say('Sign up failed', 'Please sign in again.'); setScreen('login'); return; }
+      const num = (v) => (Number.isFinite(+v) && +v > 0 ? +v : undefined);
+      const mc = d2.macros;
+      const macroOk = mc && +mc.c + +mc.p + +mc.f === 100;
+      const row = {
+        id: u.id,
+        full_name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'User',
+        avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || null,
+        ...(['Male', 'Female'].includes(d2.sex) ? { sex: d2.sex } : {}),
+        ...(num(d2.age) ? { age: num(d2.age) } : {}),
+        ...(num(d2.height) ? { height_cm: num(d2.height) } : {}),
+        ...(num(d2.weight) ? { weight_kg: num(d2.weight) } : {}),
+        ...(num(d2.target) ? { target_kg: num(d2.target) } : {}),
+        ...(macroOk ? { macro_carbs_pct: +mc.c, macro_protein_pct: +mc.p, macro_fats_pct: +mc.f } : {}),
+      };
+      const { error } = await supabase.from('profiles').upsert(row);
+      if (error) throw error;
+      await enter(u);
+    } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
+  };
+
   const register = async (d1, d2) => {
     try {
       const r = await signUpWithEmail(d1, d2);
@@ -155,15 +231,20 @@ export default function App() {
   };
   const doSignOut = async () => { await signOut(); setScreen('login'); };
 
-  // stay signed in after closing the app
+  // stay signed in after closing the app (only if the profile exists)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { if (data?.session?.user) enter(data.session.user).catch(() => {}); });
+    supabase.auth.getSession().then(async ({ data }) => {
+      const u = data?.session?.user;
+      if (u && (await hasProfile(u.id))) enter(u).catch(() => {});
+    });
   }, []);
 
   // ----- logging -----
   const commit = (m, msg) => {
     const total = consumed + m.kcal;
-    setMeals((x) => [...x, { id: Date.now() + Math.random(), ...m }]);
+    const tempId = Date.now() + Math.random();
+    setMeals((x) => [...x, { id: tempId, ...m }]);
+    saveMeal(m, tempId);
     const key = dayKey();
     const isNewDay = !activeDays.includes(key);
     const nextDays = isNewDay ? [...activeDays, key] : activeDays;
@@ -197,14 +278,21 @@ export default function App() {
   let body;
   if (screen === 'welcome') body = <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
   else if (screen === 'login') body = <Login onLogin={login} onSocial={socialLogin} onSignUp={() => setScreen('signup1')} />;
-  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup2'); }} />;
-  else if (screen === 'signup2') body = <SignUp2 draft={draft.step2} onBack={() => setScreen('signup1')} onComplete={(d2) => register(draft, d2)} onSkip={() => register(draft, {})} />;
+  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup1'); }} />;
+  else if (screen === 'signup2') body = (
+    <SignUp2
+      draft={draft.step2}
+      onBack={() => setScreen(draft.social ? 'login' : 'signup1')}
+      onComplete={(d2) => (draft.social ? finishSocial(d2) : register(draft, d2))}
+      onSkip={() => (draft.social ? finishSocial({}) : register(draft, {}))}
+    />
+  );
   else {
     const common = { tab, onTab: setTab };
     body = (
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         {tab === 'Log' && <Dashboard {...common} split={split} name={user.name} goal={goal} meals={meals} water={water}
-          onAddWater={(ml) => { setWater((w) => w + ml); say('Action confirmed', 'Update saved successfully.'); }}
+          onAddWater={(ml) => { setWater((w) => w + ml); saveWater(ml); say('Action confirmed', 'Update saved successfully.'); }}
           onLogMeal={attempt} onQuickAdd={() => setQuick(true)} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={attempt} />}
         {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
