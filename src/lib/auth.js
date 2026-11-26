@@ -85,6 +85,18 @@ export async function resetWithCode(email, code, newPassword) {
   await supabase.auth.signOut({ scope: 'local' });
 }
 
+// ---- email verification code at sign-up (Supabase "Confirm signup" email must contain {{ .Token }}) ----
+export async function verifySignupCode(email, code) {
+  const { data, error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'signup' });
+  if (error) throw error;
+  return data.user;
+}
+
+export async function resendSignupCode(email) {
+  const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: backUrl() } });
+  if (error) throw error;
+}
+
 export const signOut = () => supabase.auth.signOut();
 
 // Permanently deletes the signed-in user's Supabase account (cascades to all their data).
