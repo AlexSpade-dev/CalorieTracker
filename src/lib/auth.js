@@ -1,6 +1,11 @@
+import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(+v) ? undefined : +v);
+
+// where email links (verify / reset) send the user back to
+const backUrl = () => (Platform.OS === 'web' ? `${window.location.origin}/` : Linking.createURL(''));
 
 // Make sure a row exists in public.profiles for this signed-in user (works for email AND Google/Apple).
 // First-time details come from the sign-up form, which we stored in the account's metadata.
@@ -49,6 +54,7 @@ export async function signUpWithEmail(d1, d2 = {}) {
     email: d1.email.trim(),
     password: d1.password,
     options: {
+      emailRedirectTo: backUrl(),
       data: {
         full_name: (d1.name || '').trim(),
         daily_goal_kcal: d1.goal,
@@ -63,7 +69,22 @@ export async function signUpWithEmail(d1, d2 = {}) {
   return { user: data.user, needsConfirm: !data.session };
 }
 
-export const sendReset = (email) => supabase.auth.resetPasswordForEmail(email.trim());
+// sends the reset email; throws if Supabase could not send it (SMTP not set up, rate limit, ...)
+export const sendReset = async (email) => {
+  if (__DEV__) console.log('[auth] email link returns to', backUrl());
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: backUrl() });
+  if (error) throw error;
+};
+
+// verifies the 6-digit code from the email, then sets the new password
+export async function resetWithCode(email, code, newPassword) {
+  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'recovery' });
+  if (error) throw error;
+  const { error: e2 } = await supabase.auth.updateUser({ password: newPassword });
+  if (e2) throw e2;
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
 export const signOut = () => supabase.auth.signOut();
 
 // Permanently deletes the signed-in user's Supabase account (cascades to all their data).

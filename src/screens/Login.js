@@ -4,7 +4,8 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
 import { Backdrop, C, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
-import { sendReset } from '../lib/auth';
+import { PasswordMeter, checkPassword } from '../components/PasswordMeter';
+import { resetWithCode, sendReset } from '../lib/auth';
 import { signInWithProvider } from '../lib/socialAuth';
 
 const AREAS = ['Nutrition Logging', 'Recipe Sync', 'Analytics', 'General Bug', 'UI Design'];
@@ -72,8 +73,8 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
                   <Icon n="error" s={18} c={C.error} /><T s={12} c={C.error} style={{ flex: 1, marginLeft: 8 }}>{err}</T>
                 </Row>
               )}
-              <Field label="Email Address" req icon="mail" placeholder="alex@example.com" value={email} onChangeText={(v) => { setEmail(v); setErr(false); }} keyboardType="email-address" autoCapitalize="none" error={!!err} />
-              <Field label="Password" req icon="lock" placeholder="••••••••" value={pw} onChangeText={(v) => { setPw(v); setErr(false); }} secureTextEntry={!show} error={!!err}
+              <Field label="Email Address" req icon="mail" placeholder="alex@example.com" value={email} onChangeText={(v) => { setEmail(v); setErr(''); }} keyboardType="email-address" autoCapitalize="none" error={!!err} />
+              <Field label="Password" req icon="lock" placeholder="••••••••" value={pw} onChangeText={(v) => { setPw(v); setErr(''); }} secureTextEntry={!show} error={!!err}
                 right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.primary} /></Pressable>} />
               <Row style={{ justifyContent: 'space-between', marginBottom: 18 }}>
                 <Pressable onPress={() => setRemember(!remember)} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -114,25 +115,64 @@ export default function Login({ onLogin, onSignUp, onSocial }) {
   );
 }
 
-/* ---------------- Forgot password ---------------- */
+/* ---------------- Forgot password (emailed code) ---------------- */
 function ForgotSheet({ visible, onClose, initial }) {
   const [mail, setMail] = useState(initial || '');
-  const [sent, setSent] = useState(false);
-  const [bad, setBad] = useState(false);
-  const close = () => { setSent(false); setBad(false); onClose(); };
+  const [step, setStep] = useState('email'); // email | code | done
+  const [code, setCode] = useState('');
+  const [pw, setPw] = useState('');
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const close = () => { setStep('email'); setCode(''); setPw(''); setErr(''); onClose(); };
+
   const send = async () => {
-    if (!/^\S+@\S+\.\S+$/.test(mail.trim())) { setBad(true); return; }
-    setBad(false);
-    try { await sendReset(mail); setSent(true); } catch (e) { setBad(true); }
+    if (!/^\S+@\S+\.\S+$/.test(mail.trim())) { setErr('Please enter a valid email address.'); return; }
+    setBusy(true); setErr('');
+    try { await sendReset(mail); setStep('code'); }
+    catch (e) { setErr(e?.message || 'Could not send the email.'); }
+    setBusy(false);
   };
+  const confirm = async () => {
+    if (code.trim().length < 6) { setErr('Enter the code from the email.'); return; }
+    if (!checkPassword(pw).ok) { setErr('Password must have 8+ characters, upper and lowercase letters, a number and a symbol.'); return; }
+    setBusy(true); setErr('');
+    try { await resetWithCode(mail, code, pw); setStep('done'); }
+    catch (e) { setErr(e?.message || 'Wrong or expired code.'); }
+    setBusy(false);
+  };
+
+  const errBox = !!err && (
+    <Row style={{ backgroundColor: 'rgba(147,0,10,0.3)', borderColor: 'rgba(255,180,171,0.45)', borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 12 }}>
+      <Icon n="error" s={18} c={C.error} /><T s={12} c={C.error} style={{ flex: 1, marginLeft: 8 }}>{err}</T>
+    </Row>
+  );
+
   return (
     <Sheet visible={visible} onClose={close}>
-      {sent ? (
+      {step === 'done' ? (
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <IconBox n="mark_email_read" size={52} s={26} r={26} bg="rgba(85,214,164,0.14)" c={C.green} />
-          <T w="bold" s={20} style={{ marginTop: 12 }}>Link sent</T>
-          <T s={13} c={C.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 6, lineHeight: 19 }}>A password reset link was sent to {mail.trim()}. Check your inbox for the next steps.</T>
+          <IconBox n="check_circle" size={56} s={30} r={28} bg="rgba(85,214,164,0.14)" c={C.green} />
+          <T w="bold" s={20} style={{ marginTop: 12 }}>Password updated</T>
+          <T s={13} c={C.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 6, lineHeight: 19 }}>You can now sign in with your new password.</T>
           <CTA title="Back to sign in" icon={null} onPress={close} style={{ alignSelf: 'stretch', marginTop: 18 }} />
+        </View>
+      ) : step === 'code' ? (
+        <View>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T w="bold" s={18}>Enter your code</T>
+            <Pressable onPress={close} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
+          </Row>
+          <T s={12} c={C.onSurfaceVariant} style={{ marginTop: 6, marginBottom: 14, lineHeight: 17 }}>We sent a verification code to {mail.trim()}. Enter it below with your new password.</T>
+          {errBox}
+          <Field label="Verification code" req icon="pin" placeholder="12345678" value={code} onChangeText={(v) => { setCode(v.replace(/[^0-9]/g, '')); setErr(''); }} keyboardType="numeric" maxLength={8} />
+          <Field label="New password" req icon="lock" placeholder="Create a strong password" value={pw} onChangeText={(v) => { setPw(v); setErr(''); }} secureTextEntry={!show} style={{ marginBottom: 6 }}
+            right={<Pressable onPress={() => setShow(!show)} hitSlop={8}><Icon n={show ? 'visibility' : 'visibility_off'} s={18} c={C.primary} /></Pressable>} />
+          <PasswordMeter value={pw} />
+          <Row style={{ gap: 12 }}>
+            <CTA tone="ghost" title="Resend code" icon={null} onPress={send} disabled={busy} style={{ flex: 1 }} />
+            <CTA title={busy ? 'Saving…' : 'Update password'} icon="check" onPress={confirm} disabled={busy} style={{ flex: 1.3 }} />
+          </Row>
         </View>
       ) : (
         <View>
@@ -141,17 +181,17 @@ function ForgotSheet({ visible, onClose, initial }) {
               <IconBox n="lock_reset" size={40} s={22} bg="rgba(121,209,255,0.12)" style={{ borderWidth: 1, borderColor: 'rgba(121,209,255,0.25)' }} />
               <View style={{ marginLeft: 12, flex: 1 }}>
                 <T w="bold" s={18}>Reset Password</T>
-                <T s={12} c={C.onSurfaceVariant} style={{ marginTop: 2, lineHeight: 17 }}>Enter your registered email address to receive password reset telemetry and instructions.</T>
+                <T s={12} c={C.onSurfaceVariant} style={{ marginTop: 2, lineHeight: 17 }}>Enter your registered email and we'll send you a verification code.</T>
               </View>
             </Row>
             <Pressable onPress={close} hitSlop={10}><Icon n="close" s={20} c={C.outline} /></Pressable>
           </Row>
           <View style={{ height: 1, backgroundColor: 'rgba(62,72,79,0.5)', marginVertical: 16 }} />
-          <Field label="Email Address" req icon="mail" placeholder="you@example.com" value={mail} onChangeText={(v) => { setMail(v); setBad(false); }} keyboardType="email-address" autoCapitalize="none" error={bad} style={{ marginBottom: bad ? 6 : 14 }} />
-          {bad && <T s={11} c={C.error} style={{ marginBottom: 12 }}>Please enter a valid email address.</T>}
+          {errBox}
+          <Field label="Email Address" req icon="mail" placeholder="you@example.com" value={mail} onChangeText={(v) => { setMail(v); setErr(''); }} keyboardType="email-address" autoCapitalize="none" error={!!err} />
           <Row style={{ gap: 12 }}>
             <CTA tone="ghost" title="Back to Login" icon={null} onPress={close} style={{ flex: 1 }} />
-            <CTA title="Send Reset Link" icon="send" onPress={send} style={{ flex: 1.2 }} />
+            <CTA title={busy ? 'Sending…' : 'Send Code'} icon="send" onPress={send} disabled={busy} style={{ flex: 1.2 }} />
           </Row>
         </View>
       )}
