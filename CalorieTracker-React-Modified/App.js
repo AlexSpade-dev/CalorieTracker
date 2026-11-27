@@ -19,7 +19,7 @@ import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
 
 // web only: react-native-svg onPress on <Rect> logs this harmless warning
-LogBox.ignoreLogs(['Unknown event handler property']);
+LogBox.ignoreLogs(['Unknown event handler property', 'VirtualizedLists should never be nested']);
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -106,6 +106,7 @@ export default function App() {
   const timer = useRef(null);
   const uid = useRef(null);
   const [viewDay, setViewDay] = useState(dayKey()); // day shown on the Log tab (calendar)
+  const [history, setHistory] = useState({ meals: [], water: [], weighIns: [] }); // everything the Analytics tab needs
 
   // ----- database helpers -----
   const fromRow = (r) => ({ id: r.id, meal: r.slot, name: r.name, kcal: r.kcal, carbs: Number(r.carbs_g), protein: Number(r.protein_g), fats: Number(r.fats_g) });
@@ -120,6 +121,29 @@ export default function App() {
     if (m.data) setMeals(m.data.map(fromRow));
     if (w.data) setWater(w.data.reduce((n, r) => n + r.ml, 0));
     if (a.data) setActiveDays(a.data.map((r) => r.day));
+  };
+
+  // pages through a table 1000 rows at a time (Supabase's default page size)
+  const fetchAll = async (table, cols, id) => {
+    const out = [];
+    for (let from = 0; from < 50000; from += 1000) {
+      const { data, error } = await supabase.from(table).select(cols).eq('user_id', id).order('id').range(from, from + 999);
+      if (error || !data) break;
+      out.push(...data);
+      if (data.length < 1000) break;
+    }
+    return out;
+  };
+  // full history for the Analytics tab (Day / Week / Month / Year views)
+  const loadHistory = async (id) => {
+    try {
+      const [meals, water, weighIns] = await Promise.all([
+        fetchAll('meals', 'id,eaten_on,slot,name,kcal,carbs_g,protein_g,fats_g', id),
+        fetchAll('water_logs', 'id,logged_on,ml', id),
+        fetchAll('weigh_ins', 'id,logged_on,weight_kg', id),
+      ]);
+      setHistory({ meals, water, weighIns });
+    } catch (e) { /* keep whatever we already had */ }
   };
 
   const saveMeal = async (m, tempId) => {
@@ -143,6 +167,9 @@ export default function App() {
     const { data } = await supabase.from('profiles').select('id').eq('id', id).maybeSingle();
     return !!data;
   };
+
+  // refresh the history every time the Analytics tab is opened
+  useEffect(() => { if (screen === 'app' && tab === 'Analytics' && uid.current) loadHistory(uid.current); }, [tab, screen]);
 
   const goal = user.goal || 2200;
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
@@ -181,7 +208,7 @@ export default function App() {
   // ----- auth (Supabase) -----
   const startSession = (u) => {
     setUser(u); setPhoto(u.avatar || null); setViewDay(dayKey());
-    setMeals([]); setWater(0); setActiveDays([]); setSeen([]);
+    setMeals([]); setWater(0); setActiveDays([]); setSeen([]); setHistory({ meals: [], water: [], weighIns: [] });
     goalShown.current = false;
     setTab('Log');
     setScreen('app');
@@ -324,7 +351,7 @@ export default function App() {
           onAddWater={guard((ml) => { setWater((w) => w + ml); saveWater(ml); say('Action confirmed', 'Update saved successfully.'); })}
           onLogMeal={guard(attempt)} onQuickAdd={guard(() => setQuick(true))} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={guard(attempt)} />}
-        {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
+        {tab === 'Analytics' && <Analytics {...common} split={split} history={history} live={uid.current ? null : { meals, water }} goal={goal} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
         {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut} onDeleteAccount={doDeleteAccount}
           onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
           onPreviewGoal={() => { setGoalDemo(true); setGoalHit(true); }} />}
