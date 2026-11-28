@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '../components/Field';
-import { calcGoal } from '../lib/calories';
 import { Backdrop, C, Choice, CTA, Icon, IconBox, Pill, Row, Sheet, T } from '../components/kit';
+import { calcGoal } from '../lib/calories';
 
 const border = 'rgba(62,72,79,0.55)';
 
@@ -90,7 +90,7 @@ export function SignUp1({ draft, onNext, onBack, onSignIn }) {
             <Head title={'Start Your Health\nJourney'} sub="Join 50,000+ members tracking nutrition daily" />
 
             <Field label="Full Name" hint="Required" icon="person_outline" placeholder="e.g. Alex Morgan" value={d.name} onChangeText={(v) => set('name', v)} error={err.name} />
-            <Field label="Email Address" hint="Verification link will be sent" icon="mail_outline" placeholder="alex@example.com" value={d.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" autoCapitalize="none" error={err.email} />
+            <Field label="Email Address" hint={d.social ? 'From your Google/Apple account' : d.verified ? 'Email verified' : 'We will email you a code'} icon="mail_outline" placeholder="alex@example.com" value={d.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" autoCapitalize="none" editable={!d.social && !d.verified} error={err.email} />
             {!d.social && (
               <>
               <Field label="Password" hint={st.n ? st.label : undefined} icon="vpn_key" placeholder="Create a strong password" value={d.password} onChangeText={(v) => set('password', v)} secureTextEntry={!show} error={err.password} style={{ marginBottom: 8 }}
