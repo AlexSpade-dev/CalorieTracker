@@ -1,13 +1,12 @@
 import { PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, useFonts } from '@expo-google-fonts/plus-jakarta-sans';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import * as Updates from 'expo-updates';
 import { useEffect, useRef, useState } from 'react';
 import { LogBox, Pressable, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DeleteAccountSheet from './src/components/DeleteAccountSheet';
 import { AppHeader, Avatar, BottomNav, C, Card, CTA, HeaderCtx, Icon, Row, Scroll, T } from './src/components/kit';
-import { deleteAccount, ensureProfile, resendSignupCode, signInWithEmail, signOut, signUpWithEmail, toUser, verifySignupCode } from './src/lib/auth';
+import { deleteAccount, ensureProfile, signInWithEmail, signOut, signUpWithEmail, toUser } from './src/lib/auth';
 import { calcGoal } from './src/lib/calories';
 import { playNotify } from './src/lib/sounds';
 import { supabase } from './src/lib/supabase';
@@ -18,10 +17,9 @@ import Login from './src/screens/Login';
 import Recipes from './src/screens/Recipes';
 import { SignUp1, SignUp2 } from './src/screens/SignUp';
 import SplashScreen from './src/screens/SplashScreen';
-import VerifyEmail from './src/screens/VerifyEmail';
 
 // web only: react-native-svg onPress on <Rect> logs this harmless warning
-LogBox.ignoreLogs(['Unknown event handler property']);
+LogBox.ignoreLogs(['Unknown event handler property', 'VirtualizedLists should never be nested']);
 
 // demo account from the design (Login: alex@example.com / 1412)
 const DEMO = { name: 'Alex', email: 'alex@example.com', password: '1412', goal: 2200 };
@@ -55,29 +53,6 @@ function Toast({ toast, onClose }) {
   );
 }
 
-// shows which code the phone is running + lets you pull the newest update on demand
-function UpdateInfo() {
-  const [msg, setMsg] = useState('');
-  const check = async () => {
-    if (!Updates.isEnabled) { setMsg('Updates are off (dev mode).'); return; }
-    try {
-      setMsg('Checking…');
-      const r = await Updates.checkForUpdateAsync();
-      if (!r.isAvailable) { setMsg('You are on the latest version.'); return; }
-      setMsg('Downloading…');
-      await Updates.fetchUpdateAsync();
-      await Updates.reloadAsync();
-    } catch (e) { setMsg(e?.message || 'Could not check for updates.'); }
-  };
-  return (
-    <View style={{ alignItems: 'center', marginTop: 18 }}>
-      <T s={11} c={C.outline}>{Updates.isEmbeddedLaunch ? 'Original build' : 'Updated'} · {Updates.updateId ? Updates.updateId.slice(0, 8) : 'no id'}</T>
-      <Pressable onPress={check} hitSlop={8} style={{ marginTop: 6 }}><T w="semibold" s={12} c={C.primary}>Check for updates</T></Pressable>
-      {!!msg && <T s={11} c={C.onSurfaceVariant} style={{ marginTop: 4 }}>{msg}</T>}
-    </View>
-  );
-}
-
 function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignOut, onDeleteAccount, onPreviewOverdraft, onPreviewGoal }) {
   const [delOpen, setDelOpen] = useState(false);
   return (
@@ -103,7 +78,6 @@ function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignO
         <Pressable onPress={() => setDelOpen(true)} hitSlop={8} style={{ alignItems: 'center', marginTop: 18, marginBottom: 8 }}>
           <T w="semibold" s={13} c={C.error}>Delete account</T>
         </Pressable>
-        <UpdateInfo />
       </Scroll>
       <BottomNav active={tab} onChange={onTab} />
       <DeleteAccountSheet visible={delOpen} onClose={() => setDelOpen(false)}
@@ -114,7 +88,7 @@ function Profile({ user, goal, photo, onPick, onRemovePhoto, tab, onTab, onSignO
 
 export default function App() {
   const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
-  const [screen, setScreen] = useState('welcome'); // welcome | login | signup1 | verify | signup2 | app
+  const [screen, setScreen] = useState('welcome'); // welcome | login | signup1 | signup2 | app
   const [tab, setTab] = useState('Log');
   const [user, setUser] = useState(DEMO);
   const [draft, setDraft] = useState({});
@@ -132,7 +106,7 @@ export default function App() {
   const timer = useRef(null);
   const uid = useRef(null);
   const [viewDay, setViewDay] = useState(dayKey()); // day shown on the Log tab (calendar)
-  const [sending, setSending] = useState(false); // true while the verification email is being sent
+  const [history, setHistory] = useState({ meals: [], water: [], weighIns: [] }); // everything the Analytics tab needs
 
   // ----- database helpers -----
   const fromRow = (r) => ({ id: r.id, meal: r.slot, name: r.name, kcal: r.kcal, carbs: Number(r.carbs_g), protein: Number(r.protein_g), fats: Number(r.fats_g) });
@@ -147,6 +121,29 @@ export default function App() {
     if (m.data) setMeals(m.data.map(fromRow));
     if (w.data) setWater(w.data.reduce((n, r) => n + r.ml, 0));
     if (a.data) setActiveDays(a.data.map((r) => r.day));
+  };
+
+  // pages through a table 1000 rows at a time (Supabase's default page size)
+  const fetchAll = async (table, cols, id) => {
+    const out = [];
+    for (let from = 0; from < 50000; from += 1000) {
+      const { data, error } = await supabase.from(table).select(cols).eq('user_id', id).order('id').range(from, from + 999);
+      if (error || !data) break;
+      out.push(...data);
+      if (data.length < 1000) break;
+    }
+    return out;
+  };
+  // full history for the Analytics tab (Day / Week / Month / Year views)
+  const loadHistory = async (id) => {
+    try {
+      const [meals, water, weighIns] = await Promise.all([
+        fetchAll('meals', 'id,eaten_on,slot,name,kcal,carbs_g,protein_g,fats_g', id),
+        fetchAll('water_logs', 'id,logged_on,ml', id),
+        fetchAll('weigh_ins', 'id,logged_on,weight_kg', id),
+      ]);
+      setHistory({ meals, water, weighIns });
+    } catch (e) { /* keep whatever we already had */ }
   };
 
   const saveMeal = async (m, tempId) => {
@@ -170,6 +167,9 @@ export default function App() {
     const { data } = await supabase.from('profiles').select('id').eq('id', id).maybeSingle();
     return !!data;
   };
+
+  // refresh the history every time the Analytics tab is opened
+  useEffect(() => { if (screen === 'app' && tab === 'Analytics' && uid.current) loadHistory(uid.current); }, [tab, screen]);
 
   const goal = user.goal || 2200;
   const consumed = meals.reduce((n, m) => n + m.kcal, 0);
@@ -207,8 +207,8 @@ export default function App() {
 
   // ----- auth (Supabase) -----
   const startSession = (u) => {
-    setUser(u); setPhoto(u.avatar || null); setViewDay(dayKey()); setDraft({});
-    setMeals([]); setWater(0); setActiveDays([]); setSeen([]);
+    setUser(u); setPhoto(u.avatar || null); setViewDay(dayKey());
+    setMeals([]); setWater(0); setActiveDays([]); setSeen([]); setHistory({ meals: [], water: [], weighIns: [] });
     goalShown.current = false;
     setTab('Log');
     setScreen('app');
@@ -268,33 +268,6 @@ export default function App() {
       if (r.needsConfirm) { say('Check your email', 'Confirm your account, then sign in.'); setScreen('login'); }
       else await enter(r.user);
     } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
-  };
-  // Email sign-up, step 1 done: create the (unconfirmed) account, which emails the code, then ask for it.
-  const beginEmail = async (d) => {
-    setDraft(d);
-    if (d.verified) { setScreen('signup2'); return; } // already verified earlier, just continue
-    if (sending) return;
-    setSending(true);
-    try {
-      const r = await signUpWithEmail(d, {});
-      if (r.user?.identities?.length === 0) { say('Email already registered', 'Please sign in instead.'); return; }
-      if (!r.needsConfirm) { setDraft({ ...d, verified: true }); setScreen('signup2'); return; } // project has email confirmation off
-      say('Code sent', `Check ${d.email.trim()} for your verification code.`);
-      setScreen('verify');
-    } catch (e) { say('Sign up failed', e?.message || 'Please try again.'); }
-    finally { setSending(false); }
-  };
-  const submitCode = async (code) => {
-    try {
-      await verifySignupCode(draft.email, code);
-      setDraft((x) => ({ ...x, verified: true }));
-      setScreen('signup2');
-      return { ok: true };
-    } catch (e) { return { ok: false, error: e?.message || 'Wrong or expired code.' }; }
-  };
-  const resendCode = async () => {
-    try { await resendSignupCode(draft.email); say('Code sent', 'Check your email.'); return { ok: true }; }
-    catch (e) { return { ok: false, error: e?.message || 'Could not resend the code.' }; }
   };
   const doSignOut = async () => { await signOut(); setScreen('login'); };
   // permanently deletes the Supabase account + all its data; throws on failure so the sheet can show the error
@@ -358,16 +331,15 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   let body;
-  if (screen === 'welcome') body = <SplashScreen onStart={() => { setDraft({}); setScreen('signup1'); }} onLogin={() => setScreen('login')} />;
-  else if (screen === 'login') body = <Login onLogin={login} onSocial={socialLogin} onSignUp={() => { setDraft({}); setScreen('signup1'); }} />;
-  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => { if (draft.social) { signOut().catch(() => {}); setDraft({}); setScreen('login'); } else setScreen('welcome'); }} onSignIn={() => setScreen('login')} onNext={(d) => { if (d.social) { setDraft(d); setScreen('signup2'); } else beginEmail(d); }} />;
-  else if (screen === 'verify') body = <VerifyEmail email={draft.email} onSubmit={submitCode} onResend={resendCode} onBack={() => setScreen('signup1')} />;
+  if (screen === 'welcome') body = <SplashScreen onStart={() => setScreen('signup1')} onLogin={() => setScreen('login')} />;
+  else if (screen === 'login') body = <Login onLogin={login} onSocial={socialLogin} onSignUp={() => setScreen('signup1')} />;
+  else if (screen === 'signup1') body = <SignUp1 draft={draft} onBack={() => setScreen('welcome')} onSignIn={() => setScreen('login')} onNext={(d) => { setDraft(d); setScreen('signup2'); }} />;
   else if (screen === 'signup2') body = (
     <SignUp2
       draft={draft.step2}
-      onBack={() => setScreen('signup1')}
-      onComplete={(d2) => (draft.social || draft.verified ? finishSocial(d2) : register(draft, d2))}
-      onSkip={() => (draft.social || draft.verified ? finishSocial({}) : register(draft, {}))}
+      onBack={() => setScreen(draft.social ? 'login' : 'signup1')}
+      onComplete={(d2) => (draft.social ? finishSocial(d2) : register(draft, d2))}
+      onSkip={() => (draft.social ? finishSocial({}) : register(draft, {}))}
     />
   );
   else {
@@ -379,7 +351,7 @@ export default function App() {
           onAddWater={guard((ml) => { setWater((w) => w + ml); saveWater(ml); say('Action confirmed', 'Update saved successfully.'); })}
           onLogMeal={guard(attempt)} onQuickAdd={guard(() => setQuick(true))} />}
         {tab === 'Recipes' && <Recipes {...common} remaining={Math.max(0, goal - consumed)} proteinLeft={proteinLeft} onAddRecipe={guard(attempt)} />}
-        {tab === 'Analytics' && <Analytics {...common} split={split} meals={meals} goal={goal} water={water} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
+        {tab === 'Analytics' && <Analytics {...common} split={split} history={history} live={uid.current ? null : { meals, water }} goal={goal} weight={+user.profile?.weight || null} targetWeight={+user.profile?.target || null} />}
         {tab === 'Profile' && <Profile {...common} user={user} goal={goal} photo={photo} onPick={pickPhoto} onRemovePhoto={() => setPhoto(null)} onSignOut={doSignOut} onDeleteAccount={doDeleteAccount}
           onPreviewOverdraft={() => setPending({ meal: 'Snack', name: 'Late Night Ramen Bowl', kcal: Math.max(goal - consumed, 0) + 180, carbs: 72, protein: 24, fats: 22, sub: 'Tonkotsu Broth • 1 serving (480g)' })}
           onPreviewGoal={() => { setGoalDemo(true); setGoalHit(true); }} />}
